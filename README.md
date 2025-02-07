@@ -1,4 +1,5 @@
 # Web3 MCP
+[![smithery badge](https://smithery.ai/badge/@strangelove-ventures/web3-mcp)](https://smithery.ai/server/@strangelove-ventures/web3-mcp)
 
 A Model-Context-Protocol server for interacting with multiple blockchains including Solana and Ethereum. This server provides simple RPC endpoints for common blockchain operations.
 
@@ -18,6 +19,14 @@ Ethereum Operations:
 - Check ERC-20 token balances
 
 ## Quickstart
+
+### Installing via Smithery
+
+To install Web3 MCP for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@strangelove-ventures/web3-mcp):
+
+```bash
+npx -y @smithery/cli install @strangelove-ventures/web3-mcp --client claude
+```
 
 clone and install dependencies:
 
