@@ -10,6 +10,8 @@ Solana Operations:
 - Get detailed account information
 - Display keypair information
 - Transfer SOL between accounts
+- View SPL token balances
+- Get detailed SPL token account information
 
 Ethereum Operations:
 - Check ETH account balances
@@ -20,7 +22,7 @@ Ethereum Operations:
 clone and install dependencies:
 
 ```bash
-git clone https://github.com/yourusername/web3-mcp.git
+git clone https://github.com/strangelove-ventures/web3-mcp.git
 cd web3-mcp
 npm install
 ```
@@ -47,6 +49,7 @@ Ask Claude:
 - whats the latest slot on solana?
 - whats the balance of 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3?
 - Here's my test key [REPLACE WITH SECRET KEY]. let's transfer 0.001 SOL to [REPLACE WITH PUBLIC ADDRESS]
+- what's the balance of 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933?
 
 ## Security Note
 
