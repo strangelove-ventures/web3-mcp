@@ -1,0 +1,59 @@
+{
+  "name": "web3-mcp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "web3-mcp": "./build/index.js"
+  },
+  "scripts": {
+    "clean": "rm -rf build",
+    "build": "npm run clean && tsc && chmod +x build/index.js",
+    "start": "node build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "solana",
+    "mcp",
+    "rpc",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Solana RPC Model-Context-Protocol Server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akc2267/web3-mcp.git"
+  },
+  "homepage": "https://github.com/akc2267/web3-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/akc2267/web3-mcp/issues"
+  },
+  "contributors": [
+    {
+      "name": "Alex Cheng",
+      "email": "alexanderkcheng@gmail.com",
+      "url": "https://github.com/akc2267"
+    }
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.4.1",
+    "@solana/web3.js": "^1.87.6",
+    "bs58": "^5.0.0",
+    "ethers": "^6.11.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3"
+  }
+}
