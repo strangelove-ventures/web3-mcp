@@ -7,14 +7,25 @@ import {
   Transaction,
   SystemProgram,
   sendAndConfirmTransaction,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
+import { 
+  TOKEN_PROGRAM_ID,
+  AccountLayout,
+} from '@solana/spl-token';
 import { z } from "zod";
 import bs58 from 'bs58';
-import { JsonRpcProvider, formatEther } from 'ethers';
+import { JsonRpcProvider, formatEther, formatUnits, Contract, Interface } from 'ethers';
 
 const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 const ETH_RPC = "https://eth-mainnet.g.alchemy.com/v2/demo";
+
+// ERC-20 minimal ABI for balance checking
+const ERC20_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)"
+];
 
 // Create server instance
 const server = new McpServer({
@@ -308,6 +319,165 @@ server.tool(
   }
 );
 
+// Register token balance checking tool
+server.tool(
+  "getTokenBalance",
+  "Get ERC-20 token balance for an Ethereum address",
+  {
+    address: z.string().describe("Ethereum account address"),
+    tokenAddress: z.string().describe("ERC-20 token contract address")
+  },
+  async ({ address, tokenAddress }) => {
+    try {
+      // Create contract interface
+      const contract = new Contract(tokenAddress, ERC20_ABI, ethProvider);
+
+      // Get token details and balance
+      const [balance, decimals, symbol] = await Promise.all([
+        contract.balanceOf(address),
+        contract.decimals(),
+        contract.symbol()
+      ]);
+
+      // Format the balance using the correct number of decimals
+      const formattedBalance = formatUnits(balance, decimals);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Token Balance for ${address}:\n${formattedBalance} ${symbol} (${tokenAddress})`
+          },
+        ],
+      };
+    } catch (err) {
+      const error = err as Error;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to retrieve token balance: ${error.message}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+server.tool(
+  "getSplTokenBalances",
+  "Get SPL token balances for a Solana address",
+  {
+    address: z.string().describe("Solana account address"),
+  },
+  async ({ address }) => {
+    try {
+      const tokenAccounts = await getTokenAccounts(address);
+
+      if (tokenAccounts.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No token accounts found for address: ${address}`,
+            },
+          ],
+        };
+      }
+
+      // Create formatted output of all token balances
+      const balancesList = tokenAccounts
+        .filter(account => account.amount > 0) // Only show non-zero balances
+        .map(account => `Mint: ${account.mint.toString()}\nBalance: ${account.amount}\nDecimals: ${account.decimals}\nToken Account: ${account.tokenAccount}`)
+        .join('\n\n');
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Token Balances for ${address}:\n\n${balancesList}`,
+          },
+        ],
+      };
+    } catch (err) {
+      const error = err as Error;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to retrieve token balances: ${error.message}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+server.tool(
+  "getSplTokenInfo",
+  "Get detailed information about a specific SPL token account",
+  {
+    tokenMint: z.string().describe("Token mint address"),
+    ownerAddress: z.string().describe("Token account owner address"),
+  },
+  async ({ tokenMint, ownerAddress }) => {
+    try {
+      const mint = new PublicKey(tokenMint);
+      const owner = new PublicKey(ownerAddress);
+
+      // Find the token account
+      const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+        owner,
+        {
+          mint: mint,
+        }
+      );
+
+      if (tokenAccounts.value.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No token account found for mint ${tokenMint} owned by ${ownerAddress}`,
+            },
+          ],
+        };
+      }
+
+      const accountInfo = tokenAccounts.value[0].account;
+      const parsedInfo = accountInfo.data.parsed.info;
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Token Account Information:
+Token Account: ${tokenAccounts.value[0].pubkey.toString()}
+Mint: ${parsedInfo.mint}
+Owner: ${parsedInfo.owner}
+Balance: ${parsedInfo.tokenAmount.uiAmount}
+Decimals: ${parsedInfo.tokenAmount.decimals}
+State: ${parsedInfo.state}
+Is Native: ${parsedInfo.isNative}
+Delegation: ${parsedInfo.delegate || 'None'}
+Close Authority: ${parsedInfo.closeAuthority || 'None'}`,
+          },
+        ],
+      };
+    } catch (err) {
+      const error = err as Error;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to retrieve token information: ${error.message}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -319,3 +489,30 @@ main().catch((err: unknown) => {
   console.error("Fatal error in main():", error.message);
   process.exit(1);
 });
+
+
+// Helper function to get token accounts for a wallet
+async function getTokenAccounts(walletAddress: string) {
+  try {
+    const owner = new PublicKey(walletAddress);
+    const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+      owner,
+      {
+        programId: TOKEN_PROGRAM_ID
+      }
+    );
+
+    return tokenAccounts.value.map(account => {
+      const parsedAccountInfo = account.account.data.parsed.info;
+      return {
+        mint: new PublicKey(parsedAccountInfo.mint),
+        amount: parsedAccountInfo.tokenAmount.uiAmount,
+        decimals: parsedAccountInfo.tokenAmount.decimals,
+        tokenAccount: account.pubkey.toString()
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching token accounts:', error);
+    return [];
+  }
+}

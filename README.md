@@ -13,6 +13,7 @@ Solana Operations:
 
 Ethereum Operations:
 - Check ETH account balances
+- Check ERC-20 token balances
 
 ## Quickstart
 
