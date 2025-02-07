@@ -2,6 +2,8 @@
 
 A Model-Context-Protocol server for interacting with multiple blockchains including Solana and Ethereum. This server provides simple RPC endpoints for common blockchain operations.
 
+<a href="https://glama.ai/mcp/servers/an8x6gmzdn"><img width="380" height="200" src="https://glama.ai/mcp/servers/an8x6gmzdn/badge" alt="Web3 Server MCP server" /></a>
+
 ## Features
 
 Solana Operations:
