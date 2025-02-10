@@ -1,4 +1,4 @@
-import { JsonRpcProvider, formatEther, formatUnits, Contract } from 'ethers';
+import { JsonRpcProvider, formatEther, formatUnits, Contract, Wallet, parseUnits, MaxUint256 } from 'ethers';
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -60,29 +60,22 @@ const NETWORKS: { [key: string]: NetworkConfig } = {
     chainId: 43114,
     currencySymbol: "AVAX",
     explorer: "https://snowtrace.io"
-  },
-  tron: {
-    name: "Tron",
-    rpc: "https://api.trongrid.io",
-    chainId: 728126428,  // TRON's chainId
-    currencySymbol: "TRX",
-    explorer: "https://tronscan.org"
   }
 };
 
 // Initialize providers for each network
 const providers: { [key: string]: JsonRpcProvider } = {};
 for (const [network, config] of Object.entries(NETWORKS)) {
-  if (network !== 'tron') { // Tron needs special handling
-    providers[network] = new JsonRpcProvider(config.rpc);
-  }
+  providers[network] = new JsonRpcProvider(config.rpc);
 }
 
 // ERC-20 minimal ABI
 const ERC20_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)"
+  "function symbol() view returns (string)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function approve(address spender, uint256 amount) returns (bool)"
 ];
 
 export function registerEthereumTools(server: McpServer) {
@@ -242,6 +235,219 @@ export function registerEthereumTools(server: McpServer) {
               text: `Failed to retrieve gas price: ${error.message}`,
             },
           ],
+        };
+      }
+    }
+  );
+
+  // Send native tokens on any EVM network
+  server.tool(
+    "sendEvmTransaction",
+    "Send native tokens on any supported EVM network",
+    {
+      privateKey: z.string().describe("Sender's private key"),
+      toAddress: z.string().describe("Recipient's address"),
+      amount: z.string().describe("Amount to send (in native tokens)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+    },
+    async ({ privateKey, toAddress, amount, network }) => {
+      try {
+        if (!NETWORKS[network]) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Unsupported network: ${network}. Supported networks are: ${Object.keys(NETWORKS).join(", ")}`
+              }
+            ]
+          };
+        }
+
+        const provider = providers[network];
+        const networkConfig = NETWORKS[network];
+
+        // Create wallet from private key
+        const wallet = new Wallet(privateKey, provider);
+        const fromAddress = wallet.address;
+
+        // Get current gas price and nonce
+        const [gasPrice, nonce] = await Promise.all([
+          provider.getFeeData(),
+          provider.getTransactionCount(fromAddress)
+        ]);
+
+        // Prepare transaction
+        const tx = {
+          to: toAddress,
+          value: parseUnits(amount),
+          nonce: nonce,
+          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+          maxFeePerGas: gasPrice.maxFeePerGas,
+          gasLimit: 21000, // Standard ETH transfer
+          chainId: networkConfig.chainId
+        };
+
+        // Sign and send transaction
+        const txResponse = await wallet.sendTransaction(tx);
+        
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Transaction sent on ${networkConfig.name}!\nFrom: ${fromAddress}\nTo: ${toAddress}\nAmount: ${amount} ${networkConfig.currencySymbol}\nTransaction Hash: ${txResponse.hash}\nExplorer Link: ${networkConfig.explorer}/tx/${txResponse.hash}`
+            }
+          ]
+        };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to send transaction: ${error.message}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Send ERC-20 tokens on any EVM network
+  server.tool(
+    "sendEvmToken",
+    "Send ERC-20 tokens on any supported EVM network",
+    {
+      privateKey: z.string().describe("Sender's private key"),
+      toAddress: z.string().describe("Recipient's address"),
+      tokenAddress: z.string().describe("Token contract address"),
+      amount: z.string().describe("Amount to send (in token units)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+    },
+    async ({ privateKey, toAddress, tokenAddress, amount, network }) => {
+      try {
+        if (!NETWORKS[network]) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Unsupported network: ${network}. Supported networks are: ${Object.keys(NETWORKS).join(", ")}`
+              }
+            ]
+          };
+        }
+
+        const provider = providers[network];
+        const networkConfig = NETWORKS[network];
+
+        // Create wallet from private key
+        const wallet = new Wallet(privateKey, provider);
+        const fromAddress = wallet.address;
+
+        // Create contract instance
+        const contract = new Contract(tokenAddress, ERC20_ABI, wallet);
+
+        // Get token details
+        const [decimals, symbol] = await Promise.all([
+          contract.decimals(),
+          contract.symbol()
+        ]);
+
+        // Convert amount to token units
+        const amountInTokenUnits = parseUnits(amount, decimals);
+
+        // Send transaction
+        const txResponse = await contract.transfer(toAddress, amountInTokenUnits, {
+          gasLimit: 100000 // Estimated gas limit for token transfers
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Token transfer sent on ${networkConfig.name}!\nFrom: ${fromAddress}\nTo: ${toAddress}\nAmount: ${amount} ${symbol}\nToken Address: ${tokenAddress}\nTransaction Hash: ${txResponse.hash}\nExplorer Link: ${networkConfig.explorer}/tx/${txResponse.hash}`
+            }
+          ]
+        };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to send token transfer: ${error.message}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Approve ERC-20 token spending
+  server.tool(
+    "approveEvmToken",
+    "Approve ERC-20 token spending on any supported EVM network",
+    {
+      privateKey: z.string().describe("Token holder's private key"),
+      spenderAddress: z.string().describe("Address to approve for spending"),
+      tokenAddress: z.string().describe("Token contract address"),
+      amount: z.string().optional().describe("Amount to approve (in token units, defaults to unlimited)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+    },
+    async ({ privateKey, spenderAddress, tokenAddress, amount, network }) => {
+      try {
+        if (!NETWORKS[network]) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Unsupported network: ${network}. Supported networks are: ${Object.keys(NETWORKS).join(", ")}`
+              }
+            ]
+          };
+        }
+
+        const provider = providers[network];
+        const networkConfig = NETWORKS[network];
+
+        // Create wallet from private key
+        const wallet = new Wallet(privateKey, provider);
+
+        // Create contract instance
+        const contract = new Contract(tokenAddress, ERC20_ABI, wallet);
+
+        // Get token details
+        const [decimals, symbol] = await Promise.all([
+          contract.decimals(),
+          contract.symbol()
+        ]);
+
+        // Calculate approval amount
+        const approvalAmount = amount ? parseUnits(amount, decimals) : MaxUint256;
+
+        // Send approval transaction
+        const txResponse = await contract.approve(spenderAddress, approvalAmount, {
+          gasLimit: 60000 // Estimated gas limit for approvals
+        });
+
+        const formattedAmount = amount || "unlimited";
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Token approval sent on ${networkConfig.name}!\nToken: ${symbol} (${tokenAddress})\nSpender: ${spenderAddress}\nAmount: ${formattedAmount}\nTransaction Hash: ${txResponse.hash}\nExplorer Link: ${networkConfig.explorer}/tx/${txResponse.hash}`
+            }
+          ]
+        };
+      } catch (err) {
+        const error = err as Error;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to approve token spending: ${error.message}`
+            }
+          ]
         };
       }
     }
