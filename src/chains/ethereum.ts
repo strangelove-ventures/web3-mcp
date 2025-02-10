@@ -14,49 +14,49 @@ interface NetworkConfig {
 const NETWORKS: { [key: string]: NetworkConfig } = {
   ethereum: {
     name: "Ethereum",
-    rpc: "https://eth-mainnet.g.alchemy.com/v2/demo",
+    rpc: process.env.ETH_RPC_URL || "https://eth-mainnet.g.alchemy.com/v2/demo",
     chainId: 1,
     currencySymbol: "ETH",
     explorer: "https://etherscan.io"
   },
   base: {
     name: "Base",
-    rpc: "https://mainnet.base.org",
+    rpc: process.env.BASE_RPC_URL || "https://mainnet.base.org",
     chainId: 8453,
     currencySymbol: "ETH",
     explorer: "https://basescan.org"
   },
   arbitrum: {
     name: "Arbitrum",
-    rpc: "https://arb1.arbitrum.io/rpc",
+    rpc: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
     chainId: 42161,
     currencySymbol: "ETH",
     explorer: "https://arbiscan.io"
   },
   optimism: {
     name: "Optimism",
-    rpc: "https://mainnet.optimism.io",
+    rpc: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
     chainId: 10,
     currencySymbol: "ETH",
     explorer: "https://optimistic.etherscan.io"
   },
   bsc: {
     name: "BNB Smart Chain",
-    rpc: "https://bsc-dataseed.binance.org",
+    rpc: process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org",
     chainId: 56,
     currencySymbol: "BNB",
     explorer: "https://bscscan.com"
   },
   polygon: {
     name: "Polygon",
-    rpc: "https://polygon-rpc.com",
+    rpc: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
     chainId: 137,
     currencySymbol: "MATIC",
     explorer: "https://polygonscan.com"
   },
   avalanche: {
     name: "Avalanche",
-    rpc: "https://api.avax.network/ext/bc/C/rpc",
+    rpc: process.env.AVALANCHE_RPC_URL || "https://api.avax.network/ext/bc/C/rpc",
     chainId: 43114,
     currencySymbol: "AVAX",
     explorer: "https://snowtrace.io"
@@ -243,14 +243,13 @@ export function registerEthereumTools(server: McpServer) {
   // Send native tokens on any EVM network
   server.tool(
     "sendEvmTransaction",
-    "Send native tokens on any supported EVM network",
+    "Send native tokens on any supported EVM network (using private key from .env)",
     {
-      privateKey: z.string().describe("Sender's private key"),
       toAddress: z.string().describe("Recipient's address"),
       amount: z.string().describe("Amount to send (in native tokens)"),
       network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
     },
-    async ({ privateKey, toAddress, amount, network }) => {
+    async ({ toAddress, amount, network }) => {
       try {
         if (!NETWORKS[network]) {
           return {
@@ -266,8 +265,13 @@ export function registerEthereumTools(server: McpServer) {
         const provider = providers[network];
         const networkConfig = NETWORKS[network];
 
+        // Get private key from environment variables
+        if (!process.env.ETH_PRIVATE_KEY) {
+          throw new Error('ETH_PRIVATE_KEY not found in environment variables');
+        }
+
         // Create wallet from private key
-        const wallet = new Wallet(privateKey, provider);
+        const wallet = new Wallet(process.env.ETH_PRIVATE_KEY, provider);
         const fromAddress = wallet.address;
 
         // Get current gas price and nonce
@@ -315,15 +319,14 @@ export function registerEthereumTools(server: McpServer) {
   // Send ERC-20 tokens on any EVM network
   server.tool(
     "sendEvmToken",
-    "Send ERC-20 tokens on any supported EVM network",
+    "Send ERC-20 tokens on any supported EVM network (using private key from .env)",
     {
-      privateKey: z.string().describe("Sender's private key"),
       toAddress: z.string().describe("Recipient's address"),
       tokenAddress: z.string().describe("Token contract address"),
       amount: z.string().describe("Amount to send (in token units)"),
       network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
     },
-    async ({ privateKey, toAddress, tokenAddress, amount, network }) => {
+    async ({ toAddress, tokenAddress, amount, network }) => {
       try {
         if (!NETWORKS[network]) {
           return {
@@ -339,8 +342,13 @@ export function registerEthereumTools(server: McpServer) {
         const provider = providers[network];
         const networkConfig = NETWORKS[network];
 
+        // Get private key from environment variables
+        if (!process.env.ETH_PRIVATE_KEY) {
+          throw new Error('ETH_PRIVATE_KEY not found in environment variables');
+        }
+
         // Create wallet from private key
-        const wallet = new Wallet(privateKey, provider);
+        const wallet = new Wallet(process.env.ETH_PRIVATE_KEY, provider);
         const fromAddress = wallet.address;
 
         // Create contract instance
@@ -385,15 +393,14 @@ export function registerEthereumTools(server: McpServer) {
   // Approve ERC-20 token spending
   server.tool(
     "approveEvmToken",
-    "Approve ERC-20 token spending on any supported EVM network",
+    "Approve ERC-20 token spending on any supported EVM network (using private key from .env)",
     {
-      privateKey: z.string().describe("Token holder's private key"),
       spenderAddress: z.string().describe("Address to approve for spending"),
       tokenAddress: z.string().describe("Token contract address"),
       amount: z.string().optional().describe("Amount to approve (in token units, defaults to unlimited)"),
       network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
     },
-    async ({ privateKey, spenderAddress, tokenAddress, amount, network }) => {
+    async ({ spenderAddress, tokenAddress, amount, network }) => {
       try {
         if (!NETWORKS[network]) {
           return {
@@ -409,8 +416,13 @@ export function registerEthereumTools(server: McpServer) {
         const provider = providers[network];
         const networkConfig = NETWORKS[network];
 
+        // Get private key from environment variables
+        if (!process.env.ETH_PRIVATE_KEY) {
+          throw new Error('ETH_PRIVATE_KEY not found in environment variables');
+        }
+
         // Create wallet from private key
-        const wallet = new Wallet(privateKey, provider);
+        const wallet = new Wallet(process.env.ETH_PRIVATE_KEY, provider);
 
         // Create contract instance
         const contract = new Contract(tokenAddress, ERC20_ABI, wallet);

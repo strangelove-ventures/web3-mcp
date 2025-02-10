@@ -1,3 +1,6 @@
+import { config } from 'dotenv';
+config();
+
 import { 
   Connection, 
   PublicKey, 
@@ -15,7 +18,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import bs58 from 'bs58';
 
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 // Initialize Solana connection
 const solanaConnection = new Connection(SOLANA_RPC, 'confirmed');
@@ -47,6 +50,13 @@ async function getTokenAccounts(walletAddress: string) {
 }
 
 export function registerSolanaTools(server: McpServer) {
+  // Debug: Check environment variables
+  console.error('Debug - ENV vars available:', Object.keys(process.env));
+  console.error('Debug - SOLANA_PRIVATE_KEY exists:', !!process.env.SOLANA_PRIVATE_KEY);
+  if (!process.env.SOLANA_PRIVATE_KEY) {
+    console.error('Warning: SOLANA_PRIVATE_KEY not found in environment');
+  }
+
   server.tool(
     "getSlot",
     "Get the current slot",
@@ -223,58 +233,111 @@ Data (${encoding}): ${formattedData}`,
 
   server.tool(
     "transfer",
-    "Transfer SOL from your keypair to another address",
+    "Transfer SOL from your keypair (using private key from .env) to another address",
     {
-      secretKey: z.string().describe("Your keypair's secret key (as comma-separated numbers or JSON array)"),
       toAddress: z.string().describe("Destination wallet address"),
       amount: z.number().positive().describe("Amount of SOL to send"),
     },
-    async ({ secretKey, toAddress, amount }) => {
+    async ({ toAddress, amount }) => {
       try {
-        let fromKeypair: Keypair;
-        try {
-          const decoded = Uint8Array.from(secretKey.split(',').map(num => parseInt(num.trim())));
-          fromKeypair = Keypair.fromSecretKey(decoded);
-        } catch {
-          fromKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(secretKey)));
+        if (!process.env.SOLANA_PRIVATE_KEY) {
+          throw new Error('SOLANA_PRIVATE_KEY not found in environment variables');
         }
 
+        let fromKeypair: Keypair;
+        try {
+          // Try to decode the private key from base58
+          const privateKeyBytes = bs58.decode(process.env.SOLANA_PRIVATE_KEY);
+          fromKeypair = Keypair.fromSecretKey(new Uint8Array(privateKeyBytes));
+          
+          // Verify the keypair is valid
+          if (!fromKeypair.publicKey) {
+            throw new Error('Invalid keypair generated');
+          }
+        } catch (error) {
+          console.error('Error decoding private key:', error);
+          throw new Error('Failed to create keypair from private key. Please ensure the private key is a valid base58-encoded string.');
+        }
+
+        // Convert SOL to lamports
         const lamports = amount * LAMPORTS_PER_SOL;
 
-        const transaction = new Transaction().add(
+        // Validate destination address
+        let destinationPubkey: PublicKey;
+        try {
+          destinationPubkey = new PublicKey(toAddress);
+        } catch (error) {
+          throw new Error('Invalid destination address');
+        }
+
+        // Build transaction
+        const transaction = new Transaction();
+        
+        // Get recent blockhash
+        const { blockhash } = await solanaConnection.getLatestBlockhash('finalized');
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = fromKeypair.publicKey;
+
+        // Add transfer instruction
+        transaction.add(
           SystemProgram.transfer({
             fromPubkey: fromKeypair.publicKey,
-            toPubkey: new PublicKey(toAddress),
+            toPubkey: destinationPubkey,
             lamports,
           })
         );
 
-        const signature = await sendAndConfirmTransaction(
-          solanaConnection,
-          transaction,
-          [fromKeypair]
-        );
+        // Sign and send transaction
+        try {
+          const signature = await sendAndConfirmTransaction(
+            solanaConnection,
+            transaction,
+            [fromKeypair],
+            { commitment: 'confirmed' }
+          );
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Transfer successful!
+          // Verify the transaction was successful
+          const confirmedTransaction = await solanaConnection.getTransaction(signature, {
+            commitment: 'confirmed',
+          });
+
+          if (!confirmedTransaction?.meta?.err) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Transfer successful!
 From: ${fromKeypair.publicKey.toBase58()}
 To: ${toAddress}
 Amount: ${amount} SOL
 Transaction signature: ${signature}
 Explorer URL: https://explorer.solana.com/tx/${signature}`,
-            },
-          ],
-        };
+                },
+              ],
+            };
+          } else {
+            throw new Error('Transaction failed on-chain');
+          }
+        } catch (err) {
+          console.error('Transaction error:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Failed to transfer SOL: ${errorMessage}. Please check your wallet has sufficient SOL for the transfer and transaction fees.`,
+              },
+            ],
+          };
+        }
       } catch (err) {
-        const error = err as Error;
+        console.error('Setup error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         return {
           content: [
             {
               type: "text",
-              text: `Failed to transfer SOL: ${error.message}`,
+              text: `Failed to setup transfer: ${errorMessage}`,
             },
           ],
         };

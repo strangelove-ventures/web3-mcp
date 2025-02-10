@@ -1,6 +1,6 @@
 # Web3 MCP
 
-A Model-Context-Protocol server for interacting with multiple blockchains including Solana and Ethereum. This server provides simple RPC endpoints for common blockchain operations.
+A Model-Context-Protocol server for interacting with multiple blockchains including Solana and Ethereum. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
 
 ## Features
 
@@ -9,52 +9,119 @@ Solana Operations:
 - Check SOL account balances
 - Get detailed account information
 - Display keypair information
-- Transfer SOL between accounts
+- Transfer SOL between accounts (using private key from .env)
 - View SPL token balances
 - Get detailed SPL token account information
 
-Ethereum Operations:
-- Check ETH account balances
+Ethereum & EVM Chain Operations:
+- Check native token balances across multiple networks
 - Check ERC-20 token balances
+- Send native tokens (using private key from .env)
+- Send ERC-20 tokens (using private key from .env)
+- Approve ERC-20 token spending (using private key from .env)
 
-## Quickstart
+Supported EVM Networks:
+- Ethereum
+- Base
+- Arbitrum
+- Optimism
+- BSC (Binance Smart Chain)
+- Polygon
+- Avalanche
 
-clone and install dependencies:
+## Setup
 
+1. Clone and install dependencies:
 ```bash
 git clone https://github.com/strangelove-ventures/web3-mcp.git
 cd web3-mcp
 npm install
 ```
 
-build the tool
+2. Create a .env file in the root directory:
+```bash
+cp .env.example .env
+```
 
+3. Configure your environment variables in .env:
+```env
+# Network RPC URLs (optional - will use public endpoints if not specified)
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-api-key
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+BASE_RPC_URL=https://mainnet.base.org
+OPTIMISM_RPC_URL=https://mainnet.optimism.io
+BSC_RPC_URL=https://bsc-dataseed.binance.org
+POLYGON_RPC_URL=https://polygon-rpc.com
+AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+
+# Private keys (required for transactions)
+ETH_PRIVATE_KEY=your-ethereum-private-key
+SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
+```
+
+4. Build the tool:
 ```bash
 npm run build
 ```
 
-add the tool to your claude_desktop_config.json
-```
-"web3-rpc": {
-            "command": "node",
-            "args": [
-                "/PATH/TO/web3-mcp/build/index.js"
-            ]
-        }
+5. Add the tool to your claude_desktop_config.json:
+```json
+{
+    "web3-rpc": {
+        "command": "node",
+        "args": [
+            "/PATH/TO/web3-mcp/build/index.js"
+        ]
+    }
+}
 ```
 
-## Usage
+## Usage Examples
 
 Ask Claude:
-- whats the latest slot on solana?
-- whats the balance of 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3?
-- Here's my test key [REPLACE WITH SECRET KEY]. let's transfer 0.001 SOL to [REPLACE WITH PUBLIC ADDRESS]
-- what's the balance of 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933?
 
-## Security Note
+### Solana Operations
+- "What's the latest slot on Solana?"
+- "What's the balance of 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3?"
+- "Transfer 0.001 SOL to Cg6cVS4tjkxHthm3K9BHhmvqF7kSz8GnXqqYXnHBzGXd"
+- "Show me my SPL token balances for address 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3"
 
-Only use this with a test wallet with a small amount of funds.
+### EVM Operations
+- "What's the ETH balance of 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a?"
+- "Check the USDC balance for 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a on Ethereum"
+- "Send 0.001 ETH to 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a"
+- "What's the current gas price on Arbitrum?"
+- "Send 100 USDC to 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a on Polygon"
 
-## RPC Endpoint
+## Security Notes
 
-The server connects to Solana's mainnet at `https://api.mainnet-beta.solana.com`. To use a different network (like devnet or testnet), modify the `SOLANA_RPC` constant in `src/index.ts`.
+1. **Environment Variables**: All private keys are stored in the .env file and never exposed in the conversation history
+2. **Private Keys**: Only use this with test wallets containing small amounts of funds
+3. **RPC Endpoints**: Custom RPC endpoints can be configured in the .env file for better reliability and rate limits
+4. **.env Security**: The .env file is automatically ignored by git to prevent accidental exposure of private keys
+
+## Advanced Configuration
+
+### Custom RPC Endpoints
+You can configure custom RPC endpoints in your .env file for better reliability and higher rate limits. If not specified, the tool will fall back to public RPC endpoints.
+
+### Network Selection
+For EVM operations, you can specify the network by name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche). The tool will automatically use the appropriate RPC endpoint and network configuration.
+
+## Development
+
+To modify or extend the tool:
+
+1. Source code is in the `src` directory
+2. Chain-specific code is in `src/chains`
+3. Run `npm run build` after making changes
+4. Use TypeScript for all new code
+
+## Contributing
+
+Contributions are welcome! Please submit pull requests with any improvements or bug fixes.
+
+## License
+
+Apache-2.0 License
