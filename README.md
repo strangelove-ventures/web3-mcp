@@ -5,13 +5,12 @@ A Model-Context-Protocol server for interacting with multiple blockchains includ
 ## Features
 
 Solana Operations:
-- Get current slot number
 - Check SOL account balances
 - Get detailed account information
-- Display keypair information
-- Transfer SOL between accounts (using private key from .env)
+- Transfer SOL between accounts
 - View SPL token balances
-- Get detailed SPL token account information
+- Get your wallet address from private key
+- Swap tokens using Jupiter (Best price routing across all Solana DEXs)
 
 Ethereum & EVM Chain Operations:
 - Check native token balances across multiple networks
@@ -82,17 +81,18 @@ npm run build
 Ask Claude:
 
 ### Solana Operations
-- "What's the latest slot on Solana?"
+- "What's my Solana address?" - Shows your address derived from private key in .env
 - "What's the balance of 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3?"
 - "Transfer 0.001 SOL to Cg6cVS4tjkxHthm3K9BHhmvqF7kSz8GnXqqYXnHBzGXd"
-- "Show me my SPL token balances for address 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3"
+- "Show me my SPL token balances"
+- "Swap 0.1 SOL to USDC" (Uses Jupiter for best price routing)
 
 ### EVM Operations
-- "What's the ETH balance of 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a?"
-- "Check the USDC balance for 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a on Ethereum"
-- "Send 0.001 ETH to 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a"
+- "What's the ETH balance of 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933?"
+- "Check the USDC balance for 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Ethereum"
+- "Send 0.1 ETH to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933"
 - "What's the current gas price on Arbitrum?"
-- "Send 100 USDC to 0x6b96f801ae7f7112e659181a84d2e22ebd0bc72a on Polygon"
+- "Send 100 USDC to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Polygon"
 
 ## Security Notes
 
@@ -114,7 +114,7 @@ For EVM operations, you can specify the network by name (ethereum, base, arbitru
 To modify or extend the tool:
 
 1. Source code is in the `src` directory
-2. Chain-specific code is in `src/chains`
+2. Chain-specific code in `src/chains`
 3. Run `npm run build` after making changes
 4. Use TypeScript for all new code
 
@@ -124,4 +124,4 @@ Contributions are welcome! Please submit pull requests with any improvements or 
 
 ## License
 
-Apache-2.0 License
+ISC License

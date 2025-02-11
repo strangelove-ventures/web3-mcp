@@ -46,12 +46,15 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
+    "@jup-ag/api": "^6.0.12",
     "@modelcontextprotocol/sdk": "^1.4.1",
     "@solana/spl-token": "^0.4.1",
     "@solana/web3.js": "^1.87.6",
     "bs58": "^5.0.0",
+    "cross-fetch": "^4.0.0",
     "dotenv": "^16.4.5",
     "ethers": "^6.11.1",
+    "fetch-retry": "^5.0.6",
     "zod": "^3.24.1"
   },
   "devDependencies": {

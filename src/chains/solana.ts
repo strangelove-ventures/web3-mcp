@@ -17,6 +17,7 @@ import {
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import bs58 from 'bs58';
+import { getJupiterQuote, buildJupiterSwapTransaction, executeJupiterSwap, formatQuoteDetails } from './jupiter.js';
 
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
@@ -49,6 +50,13 @@ async function getTokenAccounts(walletAddress: string) {
   }
 }
 
+interface SwapParams {
+  inputMint: string;
+  outputMint: string;
+  amount: string;
+  slippageBps?: number;
+}
+
 export function registerSolanaTools(server: McpServer) {
   // Debug: Check environment variables
   console.error('Debug - ENV vars available:', Object.keys(process.env));
@@ -58,17 +66,35 @@ export function registerSolanaTools(server: McpServer) {
   }
 
   server.tool(
-    "getSlot",
-    "Get the current slot",
+    "getMyAddress",
+    "Get your Solana public address from private key in .env",
     {},
     async () => {
       try {
-        const slot = await solanaConnection.getSlot();
+        if (!process.env.SOLANA_PRIVATE_KEY) {
+          throw new Error('SOLANA_PRIVATE_KEY not found in environment variables');
+        }
+
+        const privateKeyBytes = bs58.decode(process.env.SOLANA_PRIVATE_KEY);
+        const keypair = Keypair.fromSecretKey(privateKeyBytes);
+        const publicKey = keypair.publicKey.toString();
+
+        // Get SOL balance
+        const balance = await solanaConnection.getBalance(keypair.publicKey);
+        const solBalance = balance / LAMPORTS_PER_SOL;
+
+        // Get token balances
+        const tokenAccounts = await getTokenAccounts(publicKey);
+        const tokenBalances = tokenAccounts
+          .filter(account => account.amount > 0)
+          .map(account => `${account.amount} (Mint: ${account.mint.toString()})`)
+          .join('\n');
+
         return {
           content: [
             {
               type: "text",
-              text: `Current slot: ${slot}`,
+              text: `Your Solana Address: ${publicKey}\nSOL Balance: ${solBalance} SOL\n\nToken Balances:\n${tokenBalances}`,
             },
           ],
         };
@@ -78,7 +104,7 @@ export function registerSolanaTools(server: McpServer) {
           content: [
             {
               type: "text",
-              text: `Failed to retrieve current slot: ${error.message}`,
+              text: `Failed to get address: ${error.message}`,
             },
           ],
         };
@@ -113,54 +139,6 @@ export function registerSolanaTools(server: McpServer) {
             {
               type: "text",
               text: `Failed to retrieve balance for address: ${error.message}`,
-            },
-          ],
-        };
-      }
-    }
-  );
-
-  server.tool(
-    "getKeypairInfo",
-    "Get information about a keypair from its secret key",
-    {
-      secretKey: z.string().describe("Base58 encoded secret key or array of bytes"),
-    },
-    async ({ secretKey }) => {
-      try {
-        let keypair: Keypair;
-        try {
-          const decoded = Uint8Array.from(secretKey.split(',').map(num => parseInt(num.trim())));
-          keypair = Keypair.fromSecretKey(decoded);
-        } catch {
-          keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(secretKey)));
-        }
-
-        const publicKey = keypair.publicKey;
-        const balance = await solanaConnection.getBalance(publicKey);
-        const accountInfo = await solanaConnection.getAccountInfo(publicKey);
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Keypair Information:
-Public Key: ${publicKey.toBase58()}
-Balance: ${balance / LAMPORTS_PER_SOL} SOL
-Account Program Owner: ${accountInfo?.owner?.toBase58() || 'N/A'}
-Account Size: ${accountInfo?.data.length || 0} bytes
-Is Executable: ${accountInfo?.executable || false}
-Rent Epoch: ${accountInfo?.rentEpoch || 0}`,
-            },
-          ],
-        };
-      } catch (err) {
-        const error = err as Error;
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Failed to retrieve keypair information: ${error.message}`,
             },
           ],
         };
@@ -232,120 +210,6 @@ Data (${encoding}): ${formattedData}`,
   );
 
   server.tool(
-    "transfer",
-    "Transfer SOL from your keypair (using private key from .env) to another address",
-    {
-      toAddress: z.string().describe("Destination wallet address"),
-      amount: z.number().positive().describe("Amount of SOL to send"),
-    },
-    async ({ toAddress, amount }) => {
-      try {
-        if (!process.env.SOLANA_PRIVATE_KEY) {
-          throw new Error('SOLANA_PRIVATE_KEY not found in environment variables');
-        }
-
-        let fromKeypair: Keypair;
-        try {
-          // Try to decode the private key from base58
-          const privateKeyBytes = bs58.decode(process.env.SOLANA_PRIVATE_KEY);
-          fromKeypair = Keypair.fromSecretKey(new Uint8Array(privateKeyBytes));
-          
-          // Verify the keypair is valid
-          if (!fromKeypair.publicKey) {
-            throw new Error('Invalid keypair generated');
-          }
-        } catch (error) {
-          console.error('Error decoding private key:', error);
-          throw new Error('Failed to create keypair from private key. Please ensure the private key is a valid base58-encoded string.');
-        }
-
-        // Convert SOL to lamports
-        const lamports = amount * LAMPORTS_PER_SOL;
-
-        // Validate destination address
-        let destinationPubkey: PublicKey;
-        try {
-          destinationPubkey = new PublicKey(toAddress);
-        } catch (error) {
-          throw new Error('Invalid destination address');
-        }
-
-        // Build transaction
-        const transaction = new Transaction();
-        
-        // Get recent blockhash
-        const { blockhash } = await solanaConnection.getLatestBlockhash('finalized');
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = fromKeypair.publicKey;
-
-        // Add transfer instruction
-        transaction.add(
-          SystemProgram.transfer({
-            fromPubkey: fromKeypair.publicKey,
-            toPubkey: destinationPubkey,
-            lamports,
-          })
-        );
-
-        // Sign and send transaction
-        try {
-          const signature = await sendAndConfirmTransaction(
-            solanaConnection,
-            transaction,
-            [fromKeypair],
-            { commitment: 'confirmed' }
-          );
-
-          // Verify the transaction was successful
-          const confirmedTransaction = await solanaConnection.getTransaction(signature, {
-            commitment: 'confirmed',
-          });
-
-          if (!confirmedTransaction?.meta?.err) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Transfer successful!
-From: ${fromKeypair.publicKey.toBase58()}
-To: ${toAddress}
-Amount: ${amount} SOL
-Transaction signature: ${signature}
-Explorer URL: https://explorer.solana.com/tx/${signature}`,
-                },
-              ],
-            };
-          } else {
-            throw new Error('Transaction failed on-chain');
-          }
-        } catch (err) {
-          console.error('Transaction error:', err);
-          const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Failed to transfer SOL: ${errorMessage}. Please check your wallet has sufficient SOL for the transfer and transaction fees.`,
-              },
-            ],
-          };
-        }
-      } catch (err) {
-        console.error('Setup error:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Failed to setup transfer: ${errorMessage}`,
-            },
-          ],
-        };
-      }
-    }
-  );
-
-  server.tool(
     "getSplTokenBalances",
     "Get SPL token balances for a Solana address",
     {
@@ -394,52 +258,153 @@ Explorer URL: https://explorer.solana.com/tx/${signature}`,
   );
 
   server.tool(
-    "getSplTokenInfo",
-    "Get detailed information about a specific SPL token account",
+    "getSwapQuote",
+    "Get best swap quote from Jupiter DEX aggregator",
     {
-      tokenMint: z.string().describe("Token mint address"),
-      ownerAddress: z.string().describe("Token account owner address"),
+      inputMint: z.string().describe("Input token mint address"),
+      outputMint: z.string().describe("Output token mint address"),
+      amount: z.string().describe("Amount of input tokens (in smallest denomination)"),
+      slippageBps: z.number().optional().describe("Slippage tolerance in basis points (optional, default 50 = 0.5%)"),
     },
-    async ({ tokenMint, ownerAddress }) => {
+    async ({ inputMint, outputMint, amount, slippageBps }: SwapParams) => {
       try {
-        const mint = new PublicKey(tokenMint);
-        const owner = new PublicKey(ownerAddress);
+        // Validate input parameters
+        inputMint = inputMint.trim();
+        outputMint = outputMint.trim();
+        amount = amount.toString().trim();
 
-        const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
-          owner,
-          {
-            mint: mint,
-          }
-        );
-
-        if (tokenAccounts.value.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No token account found for mint ${tokenMint} owned by ${ownerAddress}`,
-              },
-            ],
-          };
-        }
-
-        const accountInfo = tokenAccounts.value[0].account;
-        const parsedInfo = accountInfo.data.parsed.info;
+        const quote = await getJupiterQuote(inputMint, outputMint, amount, slippageBps);
+        const formattedDetails = await formatQuoteDetails(quote);
 
         return {
           content: [
             {
               type: "text",
-              text: `Token Account Information:
-Token Account: ${tokenAccounts.value[0].pubkey.toString()}
-Mint: ${parsedInfo.mint}
-Owner: ${parsedInfo.owner}
-Balance: ${parsedInfo.tokenAmount.uiAmount}
-Decimals: ${parsedInfo.tokenAmount.decimals}
-State: ${parsedInfo.state}
-Is Native: ${parsedInfo.isNative}
-Delegation: ${parsedInfo.delegate || 'None'}
-Close Authority: ${parsedInfo.closeAuthority || 'None'}`,
+              text: formattedDetails,
+            },
+          ],
+          quote, // Store quote for subsequent swap
+        };
+      } catch (err) {
+        console.error('Error getting swap quote:', err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to get swap quote: ${err instanceof Error ? err.message : 'Unknown error'}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "executeSwap",
+    "Execute a token swap using Jupiter DEX aggregator (using private key from .env)",
+    {
+      inputMint: z.string().describe("Input token mint address"),
+      outputMint: z.string().describe("Output token mint address"),
+      amount: z.string().describe("Amount of input tokens (in smallest denomination)"),
+      slippageBps: z.number().optional().describe("Slippage tolerance in basis points (optional, default 50 = 0.5%)"),
+    },
+    async ({ inputMint, outputMint, amount, slippageBps }: SwapParams) => {
+      try {
+        // Validate input parameters
+        inputMint = inputMint.trim();
+        outputMint = outputMint.trim();
+        amount = amount.toString().trim();
+
+        // Check for private key
+        if (!process.env.SOLANA_PRIVATE_KEY) {
+          throw new Error('SOLANA_PRIVATE_KEY not found in environment variables');
+        }
+
+        // Decode private key
+        const privateKeyBytes = bs58.decode(process.env.SOLANA_PRIVATE_KEY);
+        const keypair = Keypair.fromSecretKey(privateKeyBytes);
+
+        // Get quote
+        const quote = await getJupiterQuote(inputMint, outputMint, amount, slippageBps);
+        const formattedQuote = await formatQuoteDetails(quote);
+
+        // Build transaction
+        const swapTransaction = await buildJupiterSwapTransaction(
+          quote,
+          keypair.publicKey.toString()
+        );
+
+        // Execute swap
+        const signature = await executeJupiterSwap(
+          solanaConnection,
+          swapTransaction,
+          privateKeyBytes
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${formattedQuote}\n\nSwap executed successfully!\nTransaction signature: ${signature}\nExplorer URL: https://explorer.solana.com/tx/${signature}`,
+            },
+          ],
+        };
+      } catch (err) {
+        console.error('Error executing swap:', err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to execute swap: ${err instanceof Error ? err.message : 'Unknown error'}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "transfer",
+    "Transfer SOL from your keypair (using private key from .env) to another address",
+    {
+      toAddress: z.string().describe("Destination wallet address"),
+      amount: z.number().positive().describe("Amount of SOL to send"),
+    },
+    async ({ toAddress, amount }) => {
+      try {
+        if (!process.env.SOLANA_PRIVATE_KEY) {
+          throw new Error('SOLANA_PRIVATE_KEY not found in environment variables');
+        }
+
+        const privateKeyBytes = bs58.decode(process.env.SOLANA_PRIVATE_KEY);
+        const fromKeypair = Keypair.fromSecretKey(privateKeyBytes);
+
+        const lamports = amount * LAMPORTS_PER_SOL;
+
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: fromKeypair.publicKey,
+            toPubkey: new PublicKey(toAddress),
+            lamports,
+          })
+        );
+
+        const signature = await sendAndConfirmTransaction(
+          solanaConnection,
+          transaction,
+          [fromKeypair]
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Transfer successful!
+From: ${fromKeypair.publicKey.toBase58()}
+To: ${toAddress}
+Amount: ${amount} SOL
+Transaction signature: ${signature}
+Explorer URL: https://explorer.solana.com/tx/${signature}`,
             },
           ],
         };
@@ -449,7 +414,7 @@ Close Authority: ${parsedInfo.closeAuthority || 'None'}`,
           content: [
             {
               type: "text",
-              text: `Failed to retrieve token information: ${error.message}`,
+              text: `Failed to transfer SOL: ${error.message}`,
             },
           ],
         };
