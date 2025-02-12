@@ -64,7 +64,7 @@ SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
 npm run build
 ```
 
-5. Add the tool to your section of claude_desktop_config.json:
+5. Add the tool to your claude_desktop_config.json:
 ```json
 {
   "mcpServers": {
