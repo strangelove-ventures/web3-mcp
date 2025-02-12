@@ -46,6 +46,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
+    "@xchainjs/xchain-bitcoin": "^1.2.2",
+    "@xchainjs/xchain-client": "^0.16.2",
+    "@xchainjs/xchain-crypto": "^0.3.7",
+    "@xchainjs/xchain-util": "^0.13.1",
+    "bitcoinjs-lib": "^6.1.5",
+    "wif": "^4.0.0",
     "@jup-ag/api": "^6.0.12",
     "@modelcontextprotocol/sdk": "^1.4.1",
     "@solana/spl-token": "^0.4.1",
