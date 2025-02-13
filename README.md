@@ -99,13 +99,16 @@ npm run build
 5. Add the tool to your claude_desktop_config.json:
 ```json
 {
+  "mcpServers": {
     "web3-rpc": {
-        "command": "node",
-        "args": [
-            "/PATH/TO/web3-mcp/build/index.js"
-        ]
+      "command": "node",
+      "args": [
+        "/PATH/TO/web3-mcp/build/index.js"
+      ]
     }
+  }
 }
+
 ```
 
 ## Usage Examples
