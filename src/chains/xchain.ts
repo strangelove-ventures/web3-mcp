@@ -3,11 +3,22 @@ import { Client as LitecoinClient, defaultLtcParams } from '@xchainjs/xchain-lit
 import { Client as DogeClient, defaultDogeParams } from '@xchainjs/xchain-doge'
 import { Client as BitcoinCashClient, defaultBchParams } from '@xchainjs/xchain-bitcoincash'
 import { Network } from '@xchainjs/xchain-client'
-import { Asset } from '@xchainjs/xchain-util'
+import { Client as ThorchainClient } from '@xchainjs/xchain-thorchain'
+import { ThorchainAMM } from '@xchainjs/xchain-thorchain-amm'
+import { ThorchainQuery } from '@xchainjs/xchain-thorchain-query'
+import { Thornode } from '@xchainjs/xchain-thorchain-query'
+import { Asset, Chain, CryptoAmount, assetFromString, assetToString, baseAmount } from '@xchainjs/xchain-util'
+import { BigNumber } from 'bignumber.js'
 import { z } from "zod"
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { config } from 'dotenv'
 config()
+
+// Initialize Nine Realms headers
+import axios from 'axios'
+import { register9Rheader } from '@xchainjs/xchain-util'
+
+register9Rheader(axios)
 
 // Initialize clients with mainnet by default
 const bitcoinClient = new BitcoinClient({
@@ -26,6 +37,15 @@ const dogeClient = new DogeClient({
   network: Network.Mainnet,
 })
 
+// Initialize Thorchain clients
+const thorchainClient = new ThorchainClient({
+  network: Network.Mainnet,
+})
+
+const thornode = new Thornode(Network.Mainnet)
+const thorchainQuery = new ThorchainQuery()
+const thorchainAmm = new ThorchainAMM()
+
 const bitcoinCashClient = new BitcoinCashClient({
   ...defaultBchParams,
   network: Network.Mainnet,
@@ -34,6 +54,132 @@ const bitcoinCashClient = new BitcoinCashClient({
 // Helper function to format base amounts for all UTXO chains
 function formatBaseAmount(baseAmount: any): string {
   return baseAmount.amount().toString()
+}
+
+export function registerThorchainTools(server: McpServer) {
+  // Get THORChain balance
+  server.tool(
+    "getThorchainBalance",
+    "Get RUNE balance for an address",
+    {
+      address: z.string().describe("THORChain address to check"),
+    },
+    async ({ address }) => {
+      try {
+        const balances = await thorchainClient.getBalance(address)
+        return {
+          content: [{
+            type: "text",
+            text: `THORChain Balance for ${address}:\n${formatBaseAmount(balances[0].amount)} RUNE`,
+          }],
+        }
+      } catch (err) {
+        const error = err as Error
+        return {
+          content: [{ type: "text", text: `Failed to retrieve RUNE balance: ${error.message}` }],
+        }
+      }
+    }
+  )
+
+  // Get pool info
+  server.tool(
+    "getThorchainPoolInfo",
+    "Get information about a THORChain liquidity pool",
+    {
+      asset: z.string().describe("Asset symbol (e.g., 'BTC.BTC', 'ETH.ETH')"),
+    },
+    async ({ asset }) => {
+    try {
+    const pool = await thornode.getPool(asset)
+    return {
+    content: [{
+    type: "text",
+    text: `Pool Information for ${asset}:\n` +
+    `Status: ${pool.status}\n` +
+    `Asset Depth: ${pool.balance_asset}\n` +
+    `RUNE Depth: ${pool.balance_rune}\n` +
+    `LP Units: ${pool.LP_units}\n` +
+    `Synth Units: ${pool.synth_units}`,
+    }],
+    }
+    } catch (err) {
+    const error = err as Error
+    return {
+    content: [{ type: "text", text: `Failed to retrieve pool information: ${error.message}` }],
+    }
+    }
+    }
+  )
+
+  // Get swap quote
+  server.tool(
+    "getThorchainSwapQuote",
+    "Get a quote for swapping assets on THORChain",
+    {
+      fromAsset: z.string().describe("Source asset (e.g., 'BTC.BTC')"),
+      toAsset: z.string().describe("Destination asset (e.g., 'ETH.ETH')"),
+      amount: z.string().describe("Amount to swap (e.g., '0.1')"),
+    },
+    async ({ fromAsset: fromAssetString, toAsset: toAssetString, amount: amountString }) => {
+      try {
+        // Parse assets
+        const fromAsset = assetFromString(fromAssetString);
+        const toAsset = assetFromString(toAssetString);
+        if (!fromAsset || !toAsset) {
+          return {
+            content: [{ type: "text", text: `Invalid asset format. Expected format: 'CHAIN.SYMBOL' (e.g., 'BTC.BTC', 'ETH.ETH')` }],
+          }
+        }
+
+        // Parse amount
+        let numAmount;
+        try {
+          numAmount = new BigNumber(amountString);
+          if (numAmount.isNaN() || numAmount.isLessThanOrEqualTo(0)) {
+            throw new Error('Invalid amount');
+          }
+        } catch (error) {
+          return {
+            content: [{ type: "text", text: `Invalid amount format. Please provide a valid positive number.` }],
+          }
+        }
+
+        // Create amount using baseAmount factory function
+        const amount = new CryptoAmount(
+          baseAmount(numAmount),
+          fromAsset
+        );
+
+        const quoteParams = {
+          fromAsset,
+          destinationAsset: toAsset,
+          amount: amount
+        };
+
+        const quote = await thorchainQuery.quoteSwap(quoteParams);
+
+        return {
+          content: [{
+            type: "text",
+            text: `Swap Quote:\n` +
+              `From: ${quote.memo}\n` +
+              `To: ${quote.toAddress}\n` +
+              `Expected Output: ${quote.txEstimate.netOutput.formatedAssetString()}\n` +
+              `Affiliate Fee: ${quote.txEstimate.totalFees.affiliateFee.formatedAssetString()}\n` +
+              `Outbound Fee: ${quote.txEstimate.totalFees.outboundFee.formatedAssetString()}\n` +
+              `Expires: ${quote.expiry.toLocaleString()}`,
+          }],
+        }
+      } catch (err) {
+    const error = err as Error
+    return {
+    content: [{ type: "text", text: `Failed to get swap quote: ${error.message}` }],
+    }
+    }
+    }
+  )
+
 }
 
 export function registerUtxoTools(server: McpServer) {
@@ -270,4 +416,10 @@ Fee Rates (sats/byte):
       }
     )
   })
+}
+
+// Export both tool registration functions
+export function registerAllTools(server: McpServer) {
+  registerUtxoTools(server)
+  registerThorchainTools(server)
 }

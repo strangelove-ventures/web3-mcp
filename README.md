@@ -1,6 +1,6 @@
 # Web3 MCP
 
-A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
+A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, THORChain, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
 
 <a href="https://glama.ai/mcp/servers/an8x6gmzdn"><img width="380" height="200" src="https://glama.ai/mcp/servers/an8x6gmzdn/badge" alt="Web3 Server MCP server" /></a>
 
@@ -20,6 +20,12 @@ Ethereum & EVM Chain Operations:
 - Send native tokens (using private key from .env)
 - Send ERC-20 tokens (using private key from .env)
 - Approve ERC-20 token spending (using private key from .env)
+
+THORChain Operations:
+- Check RUNE balances
+- Get detailed pool information
+- Get swap quotes between any supported assets
+- Cross-chain swaps via THORChain protocol
 
 UTXO Chain Operations:
 - Bitcoin (BTC)
@@ -84,6 +90,9 @@ BSC_RPC_URL=https://bsc-dataseed.binance.org
 POLYGON_RPC_URL=https://polygon-rpc.com
 AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
+# THORChain Configuration
+THORCHAIN_NODE_URL=https://thornode.ninerealms.com  # Optional - will use public endpoint if not specified
+
 # Private Keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
 SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
@@ -110,7 +119,6 @@ npm run build
     }
   }
 }
-
 ```
 
 ## Usage Examples
@@ -130,6 +138,12 @@ Ask Claude:
 - "Send 0.1 ETH to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933"
 - "What's the current gas price on Arbitrum?"
 - "Send 100 USDC to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Polygon"
+
+### THORChain Operations
+- "What's the RUNE balance of thor13zpdckczd0jvyhwxmrwnpap8gmy9m5kk2gzum3?"
+- "Show me the pool information for BTC.BTC"
+- "Get a swap quote for 0.1 BTC.BTC to ETH.ETH"
+- "What's the current state of the RUNE.RUNE pool?"
 
 ### UTXO Chain Operations
 - "What's the BTC balance of 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?"
@@ -152,6 +166,9 @@ You can configure custom RPC endpoints in your .env file for better reliability 
 
 ### Network Selection
 For EVM operations, you can specify the network by name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche). The tool will automatically use the appropriate RPC endpoint and network configuration.
+
+### THORChain Configuration
+The tool uses Nine Realms public endpoints by default, but you can configure a custom THORChain node URL in the .env file for better reliability and rate limits.
 
 ### UTXO Chain Data Providers
 The tool uses several data providers for UTXO chains:

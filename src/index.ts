@@ -24,7 +24,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerSolanaTools } from "./chains/solana.js";
 import { registerEthereumTools } from "./chains/ethereum.js";
-import { registerUtxoTools } from "./chains/xchain.js";
+import { registerAllTools } from "./chains/xchain.js";
 
 // Create server instance
 const server = new McpServer({
@@ -35,7 +35,7 @@ const server = new McpServer({
 // Register chain-specific tools
 registerSolanaTools(server);
 registerEthereumTools(server);
-registerUtxoTools(server);
+registerAllTools(server);
 
 async function main() {
   const transport = new StdioServerTransport();
