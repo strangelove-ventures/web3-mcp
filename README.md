@@ -1,6 +1,6 @@
 # Web3 MCP
 
-A Model-Context-Protocol server for interacting with multiple blockchains including Solana and Ethereum. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
+A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
 
 ## Features
 
@@ -19,6 +19,28 @@ Ethereum & EVM Chain Operations:
 - Send ERC-20 tokens (using private key from .env)
 - Approve ERC-20 token spending (using private key from .env)
 
+UTXO Chain Operations:
+- Bitcoin (BTC)
+  - Check address balances
+  - View transaction history
+  - Validate addresses
+  - Get network info and fees
+- Litecoin (LTC)
+  - Check address balances
+  - View transaction history
+  - Validate addresses
+  - Get network info and fees
+- Dogecoin (DOGE)
+  - Check address balances
+  - View transaction history
+  - Validate addresses
+  - Get network info and fees
+- Bitcoin Cash (BCH)
+  - Check address balances
+  - View transaction history
+  - Validate addresses
+  - Get network info and fees
+
 Supported EVM Networks:
 - Ethereum
 - Base
@@ -31,19 +53,19 @@ Supported EVM Networks:
 ## Setup
 
 1. Clone and install dependencies:
-```bash
+\`\`\`bash
 git clone https://github.com/strangelove-ventures/web3-mcp.git
 cd web3-mcp
 npm install
-```
+\`\`\`
 
 2. Create a .env file in the root directory:
-```bash
+\`\`\`bash
 cp .env.example .env
-```
+\`\`\`
 
 3. Configure your environment variables in .env:
-```env
+\`\`\`env
 # Network RPC URLs (optional - will use public endpoints if not specified)
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-api-key
@@ -57,15 +79,19 @@ AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 # Private keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
 SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
-```
+
+# Optional API keys for UTXO chain data providers
+BLOCKCYPHER_API_KEY=your-blockcypher-api-key
+SOCHAIN_API_KEY=your-sochain-api-key
+\`\`\`
 
 4. Build the tool:
-```bash
+\`\`\`bash
 npm run build
-```
+\`\`\`
 
 5. Add the tool to your claude_desktop_config.json:
-```json
+\`\`\`json
 {
     "web3-rpc": {
         "command": "node",
@@ -74,7 +100,7 @@ npm run build
         ]
     }
 }
-```
+\`\`\`
 
 ## Usage Examples
 
@@ -94,6 +120,13 @@ Ask Claude:
 - "What's the current gas price on Arbitrum?"
 - "Send 100 USDC to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Polygon"
 
+### UTXO Chain Operations
+- "What's the BTC balance of 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?"
+- "Show me the transaction history for bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+- "Is ltc1qgj73yjsc4tm5kgv2zgf9zqt74pac4peugvxhuy a valid Litecoin address?"
+- "What are the current network fees for Bitcoin Cash?"
+- "Check DOGE balance for D6T2SsXPQPqFBcYzX3EXJvYG1F8BsNAk4z"
+
 ## Security Notes
 
 1. **Environment Variables**: All private keys are stored in the .env file and never exposed in the conversation history
@@ -109,13 +142,21 @@ You can configure custom RPC endpoints in your .env file for better reliability 
 ### Network Selection
 For EVM operations, you can specify the network by name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche). The tool will automatically use the appropriate RPC endpoint and network configuration.
 
+### UTXO Chain Data Providers
+The tool uses several data providers for UTXO chains:
+- BlockCypher
+- SoChain
+- Haskoin (for Bitcoin Cash)
+
+You can configure API keys for these providers in the .env file for better rate limits.
+
 ## Development
 
 To modify or extend the tool:
 
-1. Source code is in the `src` directory
-2. Chain-specific code in `src/chains`
-3. Run `npm run build` after making changes
+1. Source code is in the \`src\` directory
+2. Chain-specific code in \`src/chains\`
+3. Run \`npm run build\` after making changes
 4. Use TypeScript for all new code
 
 ## Contributing
