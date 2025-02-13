@@ -53,45 +53,51 @@ Supported EVM Networks:
 ## Setup
 
 1. Clone and install dependencies:
-\`\`\`bash
+```bash
 git clone https://github.com/strangelove-ventures/web3-mcp.git
 cd web3-mcp
 npm install
-\`\`\`
+```
 
 2. Create a .env file in the root directory:
-\`\`\`bash
+```bash
 cp .env.example .env
-\`\`\`
+```
 
 3. Configure your environment variables in .env:
-\`\`\`env
-# Network RPC URLs (optional - will use public endpoints if not specified)
+
+### Network RPC URLs (optional - will use public endpoints if not specified)
+```env
+# Solana
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+
+# Ethereum & Layer 2s
 ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-api-key
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
 BASE_RPC_URL=https://mainnet.base.org
 OPTIMISM_RPC_URL=https://mainnet.optimism.io
+
+# Other EVM Chains
 BSC_RPC_URL=https://bsc-dataseed.binance.org
 POLYGON_RPC_URL=https://polygon-rpc.com
 AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
-# Private keys (required for transactions)
+# Private Keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
 SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
 
-# Optional API keys for UTXO chain data providers
+# UTXO Chain API Keys (optional)
 BLOCKCYPHER_API_KEY=your-blockcypher-api-key
 SOCHAIN_API_KEY=your-sochain-api-key
-\`\`\`
+```
 
 4. Build the tool:
-\`\`\`bash
+```bash
 npm run build
-\`\`\`
+```
 
 5. Add the tool to your claude_desktop_config.json:
-\`\`\`json
+```json
 {
     "web3-rpc": {
         "command": "node",
@@ -100,7 +106,7 @@ npm run build
         ]
     }
 }
-\`\`\`
+```
 
 ## Usage Examples
 
@@ -154,9 +160,9 @@ You can configure API keys for these providers in the .env file for better rate 
 
 To modify or extend the tool:
 
-1. Source code is in the \`src\` directory
-2. Chain-specific code in \`src/chains\`
-3. Run \`npm run build\` after making changes
+1. Source code is in the `src` directory
+2. Chain-specific code in `src/chains`
+3. Run `npm run build` after making changes
 4. Use TypeScript for all new code
 
 ## Contributing
