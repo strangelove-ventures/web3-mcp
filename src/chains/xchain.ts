@@ -17,6 +17,7 @@ config()
 // Initialize Nine Realms headers
 import axios from 'axios'
 import { register9Rheader } from '@xchainjs/xchain-util'
+import fetch from 'cross-fetch'
 
 register9Rheader(axios)
 
@@ -40,11 +41,12 @@ const dogeClient = new DogeClient({
 // Initialize Thorchain clients
 const thorchainClient = new ThorchainClient({
   network: Network.Mainnet,
+  phrase: process.env.THORCHAIN_MNEMONIC || ''
 })
 
 const thornode = new Thornode(Network.Mainnet)
 const thorchainQuery = new ThorchainQuery()
-const thorchainAmm = new ThorchainAMM()
+const thorchainAmm = new ThorchainAMM(thorchainQuery)
 
 const bitcoinCashClient = new BitcoinCashClient({
   ...defaultBchParams,
@@ -90,25 +92,25 @@ export function registerThorchainTools(server: McpServer) {
       asset: z.string().describe("Asset symbol (e.g., 'BTC.BTC', 'ETH.ETH')"),
     },
     async ({ asset }) => {
-    try {
-    const pool = await thornode.getPool(asset)
-    return {
-    content: [{
-    type: "text",
-    text: `Pool Information for ${asset}:\n` +
-    `Status: ${pool.status}\n` +
-    `Asset Depth: ${pool.balance_asset}\n` +
-    `RUNE Depth: ${pool.balance_rune}\n` +
-    `LP Units: ${pool.LP_units}\n` +
-    `Synth Units: ${pool.synth_units}`,
-    }],
-    }
-    } catch (err) {
-    const error = err as Error
-    return {
-    content: [{ type: "text", text: `Failed to retrieve pool information: ${error.message}` }],
-    }
-    }
+      try {
+        const pool = await thornode.getPool(asset)
+        return {
+          content: [{
+            type: "text",
+            text: `Pool Information for ${asset}:\n` +
+              `Status: ${pool.status}\n` +
+              `Asset Depth: ${pool.balance_asset}\n` +
+              `RUNE Depth: ${pool.balance_rune}\n` +
+              `LP Units: ${pool.LP_units}\n` +
+              `Synth Units: ${pool.synth_units}`,
+          }],
+        }
+      } catch (err) {
+        const error = err as Error
+        return {
+          content: [{ type: "text", text: `Failed to retrieve pool information: ${error.message}` }],
+        }
+      }
     }
   )
 
@@ -119,7 +121,7 @@ export function registerThorchainTools(server: McpServer) {
     {
       fromAsset: z.string().describe("Source asset (e.g., 'BTC.BTC')"),
       toAsset: z.string().describe("Destination asset (e.g., 'ETH.ETH')"),
-      amount: z.string().describe("Amount to swap (e.g., '0.1')"),
+      amount: z.string().describe("Amount to swap"),
     },
     async ({ fromAsset: fromAssetString, toAsset: toAssetString, amount: amountString }) => {
       try {
@@ -145,38 +147,53 @@ export function registerThorchainTools(server: McpServer) {
           }
         }
 
-        // Create amount using baseAmount factory function
-        const amount = new CryptoAmount(
-          baseAmount(numAmount),
-          fromAsset
-        );
+        // Convert amount to base units
+        const amountInBaseUnits = numAmount.multipliedBy(10 ** 8).toFixed(0);
 
+        // Format the quote request parameters
         const quoteParams = {
-          fromAsset,
-          destinationAsset: toAsset,
-          amount: amount
+          amount: amountInBaseUnits,
+          from_asset: assetToString(fromAsset),
+          to_asset: assetToString(toAsset).replace('-B1A', ''),  // Remove B1A suffix
+          destination: '',  // Optional destination address
+          streaming_interval: '1',
+          streaming_quantity: '0'
         };
 
-        const quote = await thorchainQuery.quoteSwap(quoteParams);
+        // Get quote from THORNode directly
+        const response = await fetch(`https://thornode.ninerealms.com/thorchain/quote/swap?${new URLSearchParams(quoteParams)}`);
+        if (!response.ok) {
+          throw new Error(`THORNode API error: ${response.status} ${response.statusText}`);
+        }
+        const quote = await response.json();
+
+        // Helper function to format asset amounts with proper decimals
+        const formatAssetAmount = (amount: string | number, decimals: number = 8) => {
+          const num = Number(amount) / Math.pow(10, decimals);
+          return num.toLocaleString('en-US', { maximumFractionDigits: decimals });
+        };
 
         return {
           content: [{
             type: "text",
             text: `Swap Quote:\n` +
-              `From: ${quote.memo}\n` +
-              `To: ${quote.toAddress}\n` +
-              `Expected Output: ${quote.txEstimate.netOutput.formatedAssetString()}\n` +
-              `Affiliate Fee: ${quote.txEstimate.totalFees.affiliateFee.formatedAssetString()}\n` +
-              `Outbound Fee: ${quote.txEstimate.totalFees.outboundFee.formatedAssetString()}\n` +
-              `Expires: ${quote.expiry.toLocaleString()}`,
+              `Expected Output: ${formatAssetAmount(quote.expected_amount_out)} ${quoteParams.to_asset}\n` +
+              `Fees:\n` +
+              `- Affiliate Fee: ${formatAssetAmount(quote.fees.affiliate)} ${quote.fees.asset}\n` +
+              `- Outbound Fee: ${formatAssetAmount(quote.fees.outbound)} ${quote.fees.asset}\n` +
+              `- Liquidity Fee: ${formatAssetAmount(quote.fees.liquidity)} ${quote.fees.asset}\n` +
+              `- Total Fee: ${formatAssetAmount(quote.fees.total)} ${quote.fees.asset}\n` +
+              `Slippage: ${quote.fees.slippage_bps / 100}%\n` +
+              `Expires: ${new Date(quote.expiry * 1000).toLocaleString()}\n` +
+              `Total Swap Time: ~${quote.total_swap_seconds} seconds`,
           }],
         }
       } catch (err) {
-    const error = err as Error
-    return {
-    content: [{ type: "text", text: `Failed to get swap quote: ${error.message}` }],
-    }
-    }
+        const error = err as Error;
+        return {
+          content: [{ type: "text", text: `Failed to get swap quote: ${error.message}` }],
+        }
+      }
     }
   )
 
