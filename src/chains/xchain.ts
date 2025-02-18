@@ -9,8 +9,14 @@ import { ThorchainQuery } from '@xchainjs/xchain-thorchain-query'
 import { Thornode } from '@xchainjs/xchain-thorchain-query'
 import { Asset, Chain, CryptoAmount, assetFromString, assetToString, baseAmount } from '@xchainjs/xchain-util'
 import { BigNumber } from 'bignumber.js'
+import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing'
+import { SigningStargateClient } from '@cosmjs/stargate'
+import { Registry } from '@cosmjs/proto-signing'
+import { HdPath, Slip10RawIndex } from '@cosmjs/crypto'
 import { z } from "zod"
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import pkg from '../../../thornode-js/types/MsgCompiled.js'
+const { types } = pkg
 import { config } from 'dotenv'
 config()
 
@@ -80,6 +86,125 @@ export function registerThorchainTools(server: McpServer) {
         return {
           content: [{ type: "text", text: `Failed to retrieve RUNE balance: ${error.message}` }],
         }
+      }
+    }
+  )
+
+  // Execute swap
+  server.tool(
+    "executeThorchainSwap",
+    "Execute a token swap using THORChain (using private key from .env)",
+    {
+      fromAsset: z.string().describe("Source asset (e.g., 'THOR.RUNE')"),
+      toAsset: z.string().describe("Destination asset (e.g., 'BTC.BTC')"),
+      amount: z.string().describe("Amount to swap in base units (all THORChain assets use 8 decimals)"),
+      destinationAddress: z.string().optional().describe("Optional: Destination address for receiving tokens. If not provided, assets will be kept as synths in your THORChain address"),
+      tolerance: z.number().optional().describe("Slippage tolerance in basis points (optional, default 100 = 1%)"),
+    },
+    async ({ fromAsset: fromAssetString, toAsset: toAssetString, amount, destinationAddress = '', tolerance = 100 }) => {
+      try {
+        // Parse and validate amount
+        const numAmount = new BigNumber(amount);
+        if (numAmount.isNaN() || numAmount.isLessThanOrEqualTo(0)) {
+          throw new Error('Invalid amount. Please provide a valid positive number.');
+        }
+
+        // THORChain standardizes all assets to 8 decimals
+        const amountInBaseUnits = numAmount.multipliedBy(1e8).integerValue().toString();
+
+        if (!process.env.THORCHAIN_MNEMONIC) {
+          throw new Error('THORCHAIN_MNEMONIC environment variable not set');
+        }
+
+        // Parse assets
+        const fromAsset = assetFromString(fromAssetString);
+        const toAsset = assetFromString(toAssetString);
+        if (!fromAsset || !toAsset) {
+          throw new Error(`Invalid asset format. Expected format: 'CHAIN.SYMBOL' (e.g., 'THOR.RUNE', 'BTC.BTC')`);
+        }
+
+        // Set up registry with THORChain message types
+        const registry = new Registry()
+        registry.register("/types.MsgDeposit", types.MsgDeposit)
+
+        // Initialize wallet and client
+        const wallet = await DirectSecp256k1HdWallet.fromMnemonic(process.env.THORCHAIN_MNEMONIC, {
+          prefix: "thor",
+          hdPaths: [[Slip10RawIndex.hardened(44), Slip10RawIndex.hardened(931), Slip10RawIndex.hardened(0), Slip10RawIndex.normal(0), Slip10RawIndex.normal(0)]]  // m/44'/931'/0'/0/0
+        });
+        const client = await SigningStargateClient.connectWithSigner(
+          "https://rpc.ninerealms.com",
+          wallet,
+          { registry }
+        );
+
+
+        // Create swap memo
+        const memo = destinationAddress ? `SWAP:${toAssetString}:${destinationAddress}:${tolerance}` : `SWAP:${toAssetString}::${tolerance}`;
+
+        // Create and encode MsgDeposit
+        const coin = {
+          asset: {
+            chain: fromAsset.chain,
+            symbol: fromAsset.symbol,
+            ticker: fromAsset.ticker,
+            synth: false
+          },
+          amount: amountInBaseUnits,
+          decimals: 8
+        };
+
+        console.log('Getting wallet accounts...');
+        const [address] = await wallet.getAccounts();
+        console.log('Using address:', address.address);
+        const msgDeposit = {
+          coins: [coin],
+          memo: memo,
+          signer: new TextEncoder().encode(address.address)
+        };
+
+        // Prepare transaction
+        const msg = {
+          typeUrl: "/types.MsgDeposit",
+          value: msgDeposit
+        };
+
+        // Sign and broadcast
+        const fee = {
+          amount: [{
+            denom: "rune",
+            amount: "2000000" // 0.02 RUNE
+          }],
+          gas: "200000"
+        };
+
+        const result = await client.signAndBroadcast(
+          address.address,
+          [msg],
+          fee,
+          memo
+        );
+
+        if (result.code !== 0) {
+          throw new Error(`Transaction failed: ${result.rawLog}`);
+        }
+
+        return {
+          content: [{
+            type: "text",
+            text: `Swap transaction successful!\n` +
+                  `Transaction Hash: ${result.transactionHash}\n` +
+                  `Block Height: ${result.height}\n` +
+                  `Gas Used: ${result.gasUsed}\n` +
+                  `Raw Log: ${result.rawLog}`
+          }]
+        };
+
+      } catch (err) {
+        const error = err as Error;
+        return {
+          content: [{ type: "text", text: `Failed to execute swap: ${error.message}` }]
+        };
       }
     }
   )
