@@ -57,6 +57,7 @@ Supported EVM Networks:
 - BSC (Binance Smart Chain)
 - Polygon
 - Avalanche
+- Berachain
 
 ## Setup
 
@@ -103,6 +104,7 @@ OPTIMISM_RPC_URL=https://mainnet.optimism.io
 BSC_RPC_URL=https://bsc-dataseed.binance.org
 POLYGON_RPC_URL=https://polygon-rpc.com
 AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+BERACHAIN_RPC_URL=https://rpc.berachain.com
 
 # THORChain Configuration
 THORCHAIN_NODE_URL=https://thornode.ninerealms.com  # Optional - will use public endpoint if not specified
@@ -188,7 +190,7 @@ Ask Claude:
 You can configure custom RPC endpoints in your .env file for better reliability and higher rate limits. If not specified, the tool will fall back to public RPC endpoints.
 
 ### Network Selection
-For EVM operations, you can specify the network by name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche). The tool will automatically use the appropriate RPC endpoint and network configuration.
+For EVM operations, you can specify the network by name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain). The tool will automatically use the appropriate RPC endpoint and network configuration.
 
 ### THORChain Configuration
 The tool uses Nine Realms public endpoints by default, but you can configure a custom THORChain node URL in the .env file for better reliability and rate limits.

@@ -60,6 +60,13 @@ const NETWORKS: { [key: string]: NetworkConfig } = {
     chainId: 43114,
     currencySymbol: "AVAX",
     explorer: "https://snowtrace.io"
+  },
+  berachain: {
+    name: "Berachain",
+    rpc: process.env.BERACHAIN_RPC_URL || "https://rpc.berachain.com",
+    chainId: 80094,
+    currencySymbol: "BERA",
+    explorer: "https://berascan.com"
   }
 };
 
@@ -85,7 +92,7 @@ export function registerEthereumTools(server: McpServer) {
     "Get native token balance for an EVM address on any supported network",
     {
       address: z.string().describe("EVM account address"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ address, network }) => {
       try {
@@ -134,7 +141,7 @@ export function registerEthereumTools(server: McpServer) {
     {
       address: z.string().describe("EVM account address"),
       tokenAddress: z.string().describe("ERC-20 token contract address"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ address, tokenAddress, network }) => {
       try {
@@ -188,7 +195,7 @@ export function registerEthereumTools(server: McpServer) {
     "getGasPrice",
     "Get current gas price for any supported EVM network",
     {
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ network }) => {
       try {
@@ -247,7 +254,7 @@ export function registerEthereumTools(server: McpServer) {
     {
       toAddress: z.string().describe("Recipient's address"),
       amount: z.string().describe("Amount to send (in native tokens)"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ toAddress, amount, network }) => {
       try {
@@ -324,7 +331,7 @@ export function registerEthereumTools(server: McpServer) {
       toAddress: z.string().describe("Recipient's address"),
       tokenAddress: z.string().describe("Token contract address"),
       amount: z.string().describe("Amount to send (in token units)"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ toAddress, tokenAddress, amount, network }) => {
       try {
@@ -398,7 +405,7 @@ export function registerEthereumTools(server: McpServer) {
       spenderAddress: z.string().describe("Address to approve for spending"),
       tokenAddress: z.string().describe("Token contract address"),
       amount: z.string().optional().describe("Amount to approve (in token units, defaults to unlimited)"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
     },
     async ({ spenderAddress, tokenAddress, amount, network }) => {
       try {
