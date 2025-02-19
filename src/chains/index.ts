@@ -3,7 +3,7 @@ import { registerBitcoinTools } from "./UTXO/bitcoin"
 import { registerLitecoinTools } from "./UTXO/litecoin"
 import { registerDogecoinTools } from "./UTXO/dogecoin"
 import { registerBitcoinCashTools } from "./UTXO/bitcoincash"
-import { registerThorchainTools } from "./thorchain"
+import { registerThorchainTools } from "./thorchain/thorchain"
 
 // Export all UTXO tools registration function
 export function registerUtxoTools(server: McpServer) {

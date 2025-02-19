@@ -22,7 +22,7 @@ if (result.error) {
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerSolanaTools } from "./chains/solana.js";
+import { registerSolanaTools } from "./chains/solana/solana.js";
 import { registerEvmTools } from "./chains/evm/evm.js";
 import { 
   registerBitcoinTools,
@@ -30,7 +30,7 @@ import {
   registerDogecoinTools,
   registerBitcoinCashTools,
 } from "./chains/UTXO/index.js";
-import { registerThorchainTools } from "./chains/thorchain.js";
+import { registerThorchainTools } from "./chains/thorchain/thorchain.js";
 
 // Create server instance
 const server = new McpServer({
