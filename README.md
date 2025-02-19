@@ -79,9 +79,15 @@ cp .env.example .env
 
 ```env
 # Tool Registration Controls
-ENABLE_SOLANA_TOOLS=true      # Enable/disable Solana-specific tools
+ENABLE_SOLANA_TOOLS=true      # Enable/disable Solana tools
 ENABLE_ETHEREUM_TOOLS=true    # Enable/disable Ethereum and EVM chain tools
-ENABLE_XCHAIN_TOOLS=true      # Enable/disable cross-chain tools (THORChain, etc.)
+
+# UTXO Chain Tools
+ENABLE_BITCOIN_TOOLS=true     # Enable/disable Bitcoin tools
+ENABLE_LITECOIN_TOOLS=true    # Enable/disable Litecoin tools
+ENABLE_DOGECOIN_TOOLS=true    # Enable/disable Dogecoin tools
+ENABLE_BITCOINCASH_TOOLS=true # Enable/disable Bitcoin Cash tools
+ENABLE_THORCHAIN_TOOLS=true   # Enable/disable THORChain tools
 
 # Private Keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
@@ -139,9 +145,13 @@ npm run build
 
 The Web3 MCP server allows you to control which blockchain tools are registered through environment variables:
 
-- `ENABLE_SOLANA_TOOLS`: Enable/disable Solana-specific tools
+- `ENABLE_SOLANA_TOOLS`: Enable/disable Solana tools
 - `ENABLE_ETHEREUM_TOOLS`: Enable/disable Ethereum and EVM chain tools
-- `ENABLE_XCHAIN_TOOLS`: Enable/disable cross-chain tools (THORChain, etc.)
+- `ENABLE_BITCOIN_TOOLS`: Enable/disable Bitcoin tools
+- `ENABLE_LITECOIN_TOOLS`: Enable/disable Litecoin tools
+- `ENABLE_DOGECOIN_TOOLS`: Enable/disable Dogecoin tools
+- `ENABLE_BITCOINCASH_TOOLS`: Enable/disable Bitcoin Cash tools
+- `ENABLE_THORCHAIN_TOOLS`: Enable/disable THORChain tools
 
 Set these variables to `true` or `false` in your `.env` file to control which tools are available to the server. This allows you to:
 
@@ -152,7 +162,7 @@ Set these variables to `true` or `false` in your `.env` file to control which to
 
 ## Usage Examples
 
-Ask Claude:
+Ask Claude (or your MCP client of choice):
 
 ### Solana Operations (when ENABLE_SOLANA_TOOLS=true)
 - "What's my Solana address?" - Shows your address derived from private key in .env
@@ -168,13 +178,30 @@ Ask Claude:
 - "What's the current gas price on Arbitrum?"
 - "Send 100 USDC to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Polygon"
 
-### Cross-chain Operations (when ENABLE_XCHAIN_TOOLS=true)
+### Bitcoin Operations (when ENABLE_BITCOIN_TOOLS=true)
+- "What's the BTC balance of 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?"
+- "Show me the transaction history for bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+- "Validate this Bitcoin address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+
+### Litecoin Operations (when ENABLE_LITECOIN_TOOLS=true)
+- "What's the LTC balance of LM2WMpR1Rp6j3Sa59cMXMs1SPzj9eXpGc1?"
+- "Show me the transaction history for this Litecoin address"
+- "What's the current Litecoin network fee?"
+
+### Dogecoin Operations (when ENABLE_DOGECOIN_TOOLS=true)
+- "Check this DOGE address balance: D8vFz4p1L37jdg47HXKtSHA5uYLYxbGgPD"
+- "Show me recent Dogecoin transactions"
+- "What are the current DOGE network fees?"
+
+### Bitcoin Cash Operations (when ENABLE_BITCOINCASH_TOOLS=true)
+- "What's the BCH balance of this address?"
+- "Show me the BCH transaction history"
+- "Validate this Bitcoin Cash address"
+
+### THORChain Operations (when ENABLE_THORCHAIN_TOOLS=true)
 - "What's the RUNE balance of thor13zpdckczd0jvyhwxmrwnpap8gmy9m5kk2gzum3?"
 - "Show me the pool information for BTC.BTC"
 - "Get a swap quote for 0.1 BTC.BTC to ETH.ETH"
-- "What's the current state of the RUNE.RUNE pool?"
-- "What's the BTC balance of 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?"
-- "Show me the transaction history for bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
 
 ## Security Notes
 

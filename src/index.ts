@@ -23,8 +23,14 @@ if (result.error) {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerSolanaTools } from "./chains/solana.js";
-import { registerEthereumTools } from "./chains/ethereum.js";
-import { registerAllTools } from "./chains/xchain.js";
+import { registerEvmTools } from "./chains/evm/evm.js";
+import { 
+  registerBitcoinTools,
+  registerLitecoinTools,
+  registerDogecoinTools,
+  registerBitcoinCashTools,
+} from "./chains/UTXO/index.js";
+import { registerThorchainTools } from "./chains/thorchain.js";
 
 // Create server instance
 const server = new McpServer({
@@ -44,14 +50,35 @@ if (isEnabled('ENABLE_SOLANA_TOOLS')) {
   registerSolanaTools(server);
 }
 
-if (isEnabled('ENABLE_ETHEREUM_TOOLS')) {
-  console.error('Registering Ethereum tools...');
-  registerEthereumTools(server);
+if (isEnabled('ENABLE_EVM_TOOLS')) {
+  console.error('Registering EVM chain tools...');
+  registerEvmTools(server);
 }
 
-if (isEnabled('ENABLE_XCHAIN_TOOLS')) {
-  console.error('Registering cross-chain tools...');
-  registerAllTools(server);
+// UTXO Chain Tools
+if (isEnabled('ENABLE_BITCOIN_TOOLS')) {
+  console.error('Registering Bitcoin tools...');
+  registerBitcoinTools(server);
+}
+
+if (isEnabled('ENABLE_LITECOIN_TOOLS')) {
+  console.error('Registering Litecoin tools...');
+  registerLitecoinTools(server);
+}
+
+if (isEnabled('ENABLE_DOGECOIN_TOOLS')) {
+  console.error('Registering Dogecoin tools...');
+  registerDogecoinTools(server);
+}
+
+if (isEnabled('ENABLE_BITCOINCASH_TOOLS')) {
+  console.error('Registering Bitcoin Cash tools...');
+  registerBitcoinCashTools(server);
+}
+
+if (isEnabled('ENABLE_THORCHAIN_TOOLS')) {
+  console.error('Registering THORChain tools...');
+  registerThorchainTools(server);
 }
 
 async function main() {

@@ -85,7 +85,7 @@ const ERC20_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)"
 ];
 
-export function registerEthereumTools(server: McpServer) {
+export function registerEvmTools(server: McpServer) {
   // Get native token balance for any EVM network
   server.tool(
     "getEvmBalance",
