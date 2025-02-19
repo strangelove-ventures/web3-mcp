@@ -32,15 +32,31 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Register chain-specific tools
-registerSolanaTools(server);
-registerEthereumTools(server);
-registerAllTools(server);
+// Helper function to check if a feature is enabled
+const isEnabled = (envVar: string): boolean => {
+  const value = process.env[envVar]?.toLowerCase();
+  return value === 'true' || value === '1' || value === 'yes';
+};
+
+// Register chain-specific tools based on environment variables
+if (isEnabled('ENABLE_SOLANA_TOOLS')) {
+  console.error('Registering Solana tools...');
+  registerSolanaTools(server);
+}
+
+if (isEnabled('ENABLE_ETHEREUM_TOOLS')) {
+  console.error('Registering Ethereum tools...');
+  registerEthereumTools(server);
+}
+
+if (isEnabled('ENABLE_XCHAIN_TOOLS')) {
+  console.error('Registering cross-chain tools...');
+  registerAllTools(server);
+}
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Web3 MCP running on stdio");
 }
 
 main().catch((err: unknown) => {

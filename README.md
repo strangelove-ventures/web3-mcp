@@ -74,9 +74,23 @@ cp .env.example .env
 
 3. Configure your environment variables in .env:
 
-### Network RPC URLs (optional - will use public endpoints if not specified)
+### Required Configuration
+
 ```env
-# Solana
+# Tool Registration Controls
+ENABLE_SOLANA_TOOLS=true      # Enable/disable Solana-specific tools
+ENABLE_ETHEREUM_TOOLS=true    # Enable/disable Ethereum and EVM chain tools
+ENABLE_XCHAIN_TOOLS=true      # Enable/disable cross-chain tools (THORChain, etc.)
+
+# Private Keys (required for transactions)
+ETH_PRIVATE_KEY=your-ethereum-private-key
+SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
+```
+
+### Optional Configuration
+
+```env
+# Network RPC URLs (optional - will use public endpoints if not specified)
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 
 # Ethereum & Layer 2s
@@ -92,10 +106,8 @@ AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 
 # THORChain Configuration
 THORCHAIN_NODE_URL=https://thornode.ninerealms.com  # Optional - will use public endpoint if not specified
-
-# Private Keys (required for transactions)
-ETH_PRIVATE_KEY=your-ethereum-private-key
-SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
+THORCHAIN_PRIVATE_KEY=your-thorchain-private-key
+THORCHAIN_MNEMONIC=your-thorchain-mnemonic
 
 # UTXO Chain API Keys (optional)
 BLOCKCYPHER_API_KEY=your-blockcypher-api-key
@@ -121,36 +133,46 @@ npm run build
 }
 ```
 
+## Tool Registration
+
+The Web3 MCP server allows you to control which blockchain tools are registered through environment variables:
+
+- `ENABLE_SOLANA_TOOLS`: Enable/disable Solana-specific tools
+- `ENABLE_ETHEREUM_TOOLS`: Enable/disable Ethereum and EVM chain tools
+- `ENABLE_XCHAIN_TOOLS`: Enable/disable cross-chain tools (THORChain, etc.)
+
+Set these variables to `true` or `false` in your `.env` file to control which tools are available to the server. This allows you to:
+
+- Reduce startup time by only loading required tools
+- Minimize security surface area by disabling unused chains
+- Customize the server for specific use cases
+- Control resource usage by limiting active connections
+
 ## Usage Examples
 
 Ask Claude:
 
-### Solana Operations
+### Solana Operations (when ENABLE_SOLANA_TOOLS=true)
 - "What's my Solana address?" - Shows your address derived from private key in .env
 - "What's the balance of 62QXuWZ3WT6ws1ZFxJobVDVXn6bEsiYpLo5yG612U6u3?"
 - "Transfer 0.001 SOL to Cg6cVS4tjkxHthm3K9BHhmvqF7kSz8GnXqqYXnHBzGXd"
 - "Show me my SPL token balances"
 - "Swap 0.1 SOL to USDC" (Uses Jupiter for best price routing)
 
-### EVM Operations
+### EVM Operations (when ENABLE_ETHEREUM_TOOLS=true)
 - "What's the ETH balance of 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933?"
 - "Check the USDC balance for 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Ethereum"
 - "Send 0.1 ETH to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933"
 - "What's the current gas price on Arbitrum?"
 - "Send 100 USDC to 0x556437c4d22ceaeeebf82006b85bdcc0ae67d933 on Polygon"
 
-### THORChain Operations
+### Cross-chain Operations (when ENABLE_XCHAIN_TOOLS=true)
 - "What's the RUNE balance of thor13zpdckczd0jvyhwxmrwnpap8gmy9m5kk2gzum3?"
 - "Show me the pool information for BTC.BTC"
 - "Get a swap quote for 0.1 BTC.BTC to ETH.ETH"
 - "What's the current state of the RUNE.RUNE pool?"
-
-### UTXO Chain Operations
 - "What's the BTC balance of 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?"
 - "Show me the transaction history for bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
-- "Is ltc1qgj73yjsc4tm5kgv2zgf9zqt74pac4peugvxhuy a valid Litecoin address?"
-- "What are the current network fees for Bitcoin Cash?"
-- "Check DOGE balance for D6T2SsXPQPqFBcYzX3EXJvYG1F8BsNAk4z"
 
 ## Security Notes
 
@@ -158,6 +180,7 @@ Ask Claude:
 2. **Private Keys**: Only use this with test wallets containing small amounts of funds
 3. **RPC Endpoints**: Custom RPC endpoints can be configured in the .env file for better reliability and rate limits
 4. **.env Security**: The .env file is automatically ignored by git to prevent accidental exposure of private keys
+5. **Tool Registration**: Use the tool registration controls to minimize security surface area by only enabling required chains
 
 ## Advanced Configuration
 
