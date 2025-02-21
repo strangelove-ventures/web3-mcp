@@ -31,6 +31,7 @@ import {
   registerBitcoinCashTools,
 } from "./chains/UTXO/index.js";
 import { registerThorchainTools } from "./chains/thorchain/thorchain.js";
+import { registerGeneralTools } from "./general/index.js";
 
 // Create server instance
 const server = new McpServer({
@@ -80,6 +81,10 @@ if (isEnabled('ENABLE_THORCHAIN_TOOLS')) {
   console.error('Registering THORChain tools...');
   registerThorchainTools(server);
 }
+
+// Register general tools
+console.error('Registering general tools...');
+registerGeneralTools(server);
 
 async function main() {
   const transport = new StdioServerTransport();
