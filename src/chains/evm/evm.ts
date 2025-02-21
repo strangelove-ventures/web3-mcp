@@ -67,6 +67,13 @@ const NETWORKS: { [key: string]: NetworkConfig } = {
     chainId: 80094,
     currencySymbol: "BERA",
     explorer: "https://berascan.com"
+  },
+  sonic: {
+    name: "Sonic",
+    rpc: process.env.SONIC_RPC_URL || "https://rpc.soniclabs.com/",
+    chainId: 2024,
+    currencySymbol: "SONIC",
+    explorer: "https://explorer.sonic.ooo"
   }
 };
 
@@ -92,7 +99,7 @@ export function registerEvmTools(server: McpServer) {
     "Get native token balance for an EVM address on any supported network",
     {
       address: z.string().describe("EVM account address"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain, sonic)"),
     },
     async ({ address, network }) => {
       try {
@@ -141,7 +148,7 @@ export function registerEvmTools(server: McpServer) {
     {
       address: z.string().describe("EVM account address"),
       tokenAddress: z.string().describe("ERC-20 token contract address"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain, sonic)"),
     },
     async ({ address, tokenAddress, network }) => {
       try {
@@ -195,7 +202,7 @@ export function registerEvmTools(server: McpServer) {
     "getGasPrice",
     "Get current gas price for any supported EVM network",
     {
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain, sonic)"),
     },
     async ({ network }) => {
       try {
@@ -254,7 +261,7 @@ export function registerEvmTools(server: McpServer) {
     {
       toAddress: z.string().describe("Recipient's address"),
       amount: z.string().describe("Amount to send (in native tokens)"),
-      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain)"),
+      network: z.string().describe("Network name (ethereum, base, arbitrum, optimism, bsc, polygon, avalanche, berachain, sonic)"),
     },
     async ({ toAddress, amount, network }) => {
       try {
