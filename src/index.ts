@@ -31,6 +31,7 @@ import {
   registerBitcoinCashTools,
 } from "./chains/UTXO/index.js";
 import { registerThorchainTools } from "./chains/thorchain/thorchain.js";
+import { registerRippleTools } from "./chains/ripple/ripple.js";
 import { registerGeneralTools } from "./general/index.js";
 
 // Create server instance
@@ -80,6 +81,11 @@ if (isEnabled('ENABLE_BITCOINCASH_TOOLS')) {
 if (isEnabled('ENABLE_THORCHAIN_TOOLS')) {
   console.error('Registering THORChain tools...');
   registerThorchainTools(server);
+}
+
+if (isEnabled('ENABLE_RIPPLE_TOOLS')) {
+  console.error('Registering Ripple (XRP) tools...');
+  registerRippleTools(server);
 }
 
 // Register general tools

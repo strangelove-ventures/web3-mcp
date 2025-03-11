@@ -13,5 +13,11 @@ declare namespace NodeJS {
     BSC_RPC_URL: string;
     POLYGON_RPC_URL: string;
     AVALANCHE_RPC_URL: string;
+
+    // Ripple (XRP)
+    XRP_RPC_URL: string;
+    XRP_ADDRESS: string;
+    XRP_PRIVATE_KEY: string;
+    XRP_PUBLIC_KEY: string;
   }
 }

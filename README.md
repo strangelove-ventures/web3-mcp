@@ -1,6 +1,6 @@
 # Web3 MCP
 
-A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, THORChain, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
+A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, THORChain, XRP Ledger, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
 
 <a href="https://glama.ai/mcp/servers/an8x6gmzdn"><img width="380" height="200" src="https://glama.ai/mcp/servers/an8x6gmzdn/badge" alt="Web3 Server MCP server" /></a>
 
@@ -49,6 +49,15 @@ UTXO Chain Operations:
   - Validate addresses
   - Get network info and fees
 
+XRP Ledger Operations:
+- Check XRP account balances
+- View transaction history
+- Validate XRP addresses
+- Send XRP to another address
+- Get current XRP Ledger information
+- Check token balances
+- Create trustlines for tokens
+
 Supported EVM Networks:
 - Ethereum
 - Base
@@ -92,6 +101,14 @@ ENABLE_THORCHAIN_TOOLS=true   # Enable/disable THORChain tools
 # Private Keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
 SOLANA_PRIVATE_KEY=your-base58-encoded-solana-private-key
+
+# XRP Ledger credentials (required for XRP transactions)
+# Either private key or mnemonic is required
+XRP_PRIVATE_KEY=your-xrp-private-key-in-hex
+# OR
+XRP_MNEMONIC=your-xrp-mnemonic-recovery-phrase
+# Optional - used to verify the derived address
+XRP_ADDRESS=your-xrp-account-address
 ```
 
 ### Optional Configuration
@@ -111,6 +128,9 @@ BSC_RPC_URL=https://bsc-dataseed.binance.org
 POLYGON_RPC_URL=https://polygon-rpc.com
 AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
 BERACHAIN_RPC_URL=https://rpc.berachain.com
+
+# XRP Ledger
+XRP_RPC_URL=https://xrplcluster.com/     # Optional - will use public endpoint if not specified
 
 # THORChain Configuration
 THORCHAIN_NODE_URL=https://thornode.ninerealms.com  # Optional - will use public endpoint if not specified
@@ -152,6 +172,7 @@ The Web3 MCP server allows you to control which blockchain tools are registered 
 - `ENABLE_DOGECOIN_TOOLS`: Enable/disable Dogecoin tools
 - `ENABLE_BITCOINCASH_TOOLS`: Enable/disable Bitcoin Cash tools
 - `ENABLE_THORCHAIN_TOOLS`: Enable/disable THORChain tools
+- `ENABLE_RIPPLE_TOOLS`: Enable/disable XRP Ledger tools
 
 Set these variables to `true` or `false` in your `.env` file to control which tools are available to the server. This allows you to:
 
@@ -203,6 +224,15 @@ Ask Claude (or your MCP client of choice):
 - "Show me the pool information for BTC.BTC"
 - "Get a swap quote for 0.1 BTC.BTC to ETH.ETH"
 
+### XRP Ledger Operations (when ENABLE_RIPPLE_TOOLS=true)
+- "What's the XRP balance of rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe?"
+- "Show me the transaction history for rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+- "Is rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe a valid XRP address?"
+- "Send 10 XRP to rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+- "What's the current XRP Ledger information?"
+- "Show me token balances for rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+- "Create a trustline for USD with issuer rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe with a limit of 1000"
+
 ## Security Notes
 
 1. **Environment Variables**: All private keys are stored in the .env file and never exposed in the conversation history
@@ -221,6 +251,13 @@ For EVM operations, you can specify the network by name (ethereum, base, arbitru
 
 ### THORChain Configuration
 The tool uses Nine Realms public endpoints by default, but you can configure a custom THORChain node URL in the .env file for better reliability and rate limits.
+
+### XRP Ledger Configuration
+The tool can use either a private key or mnemonic phrase for XRP transactions. Configure these in your .env file:
+- `XRP_PRIVATE_KEY`: Your XRP private key in hex format
+- `XRP_MNEMONIC`: Alternative to private key - your 12-word recovery phrase
+- `XRP_ADDRESS`: Optional - Your XRP account address (used to verify the derived address)
+- `XRP_RPC_URL`: Optional - Custom XRP Ledger node URL (defaults to public endpoint)
 
 ### UTXO Chain Data Providers
 The tool uses several data providers for UTXO chains:
