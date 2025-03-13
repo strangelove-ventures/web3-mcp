@@ -29,6 +29,7 @@ import {
   registerLitecoinTools,
   registerDogecoinTools,
   registerBitcoinCashTools,
+  registerCardanoTools,
 } from "./chains/UTXO/index.js";
 import { registerThorchainTools } from "./chains/thorchain/thorchain.js";
 import { registerRippleTools } from "./chains/ripple/ripple.js";
@@ -76,6 +77,11 @@ if (isEnabled('ENABLE_DOGECOIN_TOOLS')) {
 if (isEnabled('ENABLE_BITCOINCASH_TOOLS')) {
   console.error('Registering Bitcoin Cash tools...');
   registerBitcoinCashTools(server);
+}
+
+if (isEnabled('ENABLE_CARDANO_TOOLS')) {
+  console.error('Registering Cardano tools...');
+  registerCardanoTools(server);
 }
 
 if (isEnabled('ENABLE_THORCHAIN_TOOLS')) {
