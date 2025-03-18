@@ -21,11 +21,12 @@
     "blockchain",
     "xrp",
     "ripple",
-    "cardano"
+    "cardano",
+    "ton"
   ],
   "author": "",
   "license": "ISC",
-  "description": "Blockchain RPC Model-Context-Protocol Server for Solana, EVM chains, UTXO chains, Ripple (XRP), Cardano and more",
+  "description": "Blockchain RPC Model-Context-Protocol Server for Solana, EVM chains, UTXO chains, Ripple (XRP), Cardano, TON and more",
   "repository": {
     "type": "git",
     "url": "https://github.com/akc2267/web3-mcp.git"
@@ -78,6 +79,9 @@
     "ripple-keypairs": "^1.3.1",
     "wif": "^4.0.0",
     "xrpl": "^2.14.0",
+    "@ton/ton": "13.5.1",
+    "@ton/crypto": "3.2.0",
+    "@ton/core": "0.52.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {

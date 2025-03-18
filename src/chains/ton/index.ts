@@ -1,0 +1,1 @@
+export { registerTonTools } from './ton';

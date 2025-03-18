@@ -1,6 +1,6 @@
 # Web3 MCP
 
-A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, THORChain, XRP Ledger, Cardano, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
+A Model-Context-Protocol server for interacting with multiple blockchains including Solana, Ethereum, THORChain, XRP Ledger, TON (The Open Network), Cardano, and UTXO chains. This server provides simple RPC endpoints for common blockchain operations, allowing secure interactions with various blockchains through environment variables.
 
 <a href="https://glama.ai/mcp/servers/an8x6gmzdn"><img width="380" height="200" src="https://glama.ai/mcp/servers/an8x6gmzdn/badge" alt="Web3 Server MCP server" /></a>
 
@@ -67,6 +67,13 @@ XRP Ledger Operations:
 - Check token balances
 - Create trustlines for tokens
 
+TON (The Open Network) Operations:
+- Get TON account balances
+- View transaction history
+- Validate TON addresses
+- Send TON to another address with optional memo/comment
+- Get current TON network information
+
 Supported EVM Networks:
 - Ethereum
 - Base
@@ -107,6 +114,8 @@ ENABLE_LITECOIN_TOOLS=true    # Enable/disable Litecoin tools
 ENABLE_DOGECOIN_TOOLS=true    # Enable/disable Dogecoin tools
 ENABLE_BITCOINCASH_TOOLS=true # Enable/disable Bitcoin Cash tools
 ENABLE_THORCHAIN_TOOLS=true   # Enable/disable THORChain tools
+ENABLE_RIPPLE_TOOLS=true      # Enable/disable XRP Ledger tools
+ENABLE_TON_TOOLS=true         # Enable/disable TON tools
 
 # Private Keys (required for transactions)
 ETH_PRIVATE_KEY=your-ethereum-private-key
@@ -119,6 +128,12 @@ XRP_PRIVATE_KEY=your-xrp-private-key-in-hex
 XRP_MNEMONIC=your-xrp-mnemonic-recovery-phrase
 # Optional - used to verify the derived address
 XRP_ADDRESS=your-xrp-account-address
+
+# TON Configuration
+TON_MNEMONIC=word1 word2 word3 ... word24  # 24-word recovery phrase for TON wallet
+TON_ADDRESS=your-ton-wallet-address       # Your TON wallet address
+TON_API_KEY=your-toncenter-api-key        # Get from @tonapibot on Telegram (optional but recommended)
+TON_RPC_URL=https://toncenter.com/api/v2/jsonRPC  # Optional - default is TON Center API
 
 # Cardano Configuration
 BLOCKFROST_API_KEY=your-blockfrost-api-key  # Get a real API key from https://blockfrost.io/
@@ -147,6 +162,10 @@ BERACHAIN_RPC_URL=https://rpc.berachain.com
 
 # XRP Ledger
 XRP_RPC_URL=https://xrplcluster.com/     # Optional - will use public endpoint if not specified
+
+# TON Network
+TON_RPC_URL=https://toncenter.com/api/v2/jsonRPC  # Optional - default is TON Center API
+TON_API_KEY=your-toncenter-api-key        # Get from @tonapibot on Telegram (optional but recommended)
 
 # THORChain Configuration
 THORCHAIN_NODE_URL=https://thornode.ninerealms.com  # Optional - will use public endpoint if not specified
@@ -190,6 +209,7 @@ The Web3 MCP server allows you to control which blockchain tools are registered 
 - `ENABLE_THORCHAIN_TOOLS`: Enable/disable THORChain tools
 - `ENABLE_RIPPLE_TOOLS`: Enable/disable XRP Ledger tools
 - `ENABLE_CARDANO_TOOLS`: Enable/disable Cardano tools
+- `ENABLE_TON_TOOLS`: Enable/disable TON tools
 
 Set these variables to `true` or `false` in your `.env` file to control which tools are available to the server. This allows you to:
 
@@ -256,6 +276,14 @@ Ask Claude (or your MCP client of choice):
 - "Show me token balances for rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
 - "Create a trustline for USD with issuer rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe with a limit of 1000"
 
+### TON Operations (when ENABLE_TON_TOOLS=true)
+- "What's the TON balance of EQAAFhjXzKuQ5N0c96nsdZQWATcJm909LYSaCAvWFQF8tvUZ?"
+- "Show me the transaction history for EQAAFhjXzKuQ5N0c96nsdZQWATcJm909LYSaCAvWFQF8tvUZ"
+- "Is UQD0BRQt-QdIEbsjuRsMqzDlBkUAEfQixShDECoKEOXRc4eR a valid TON address?"
+- "Send 0.1 TON to EQAAFhjXzKuQ5N0c96nsdZQWATcJm909LYSaCAvWFQF8tvUZ"
+- "Send 0.01 TON to UQD0BRQt-QdIEbsjuRsMqzDlBkUAEfQixShDECoKEOXRc4eR with comment 'test payment'"
+- "What's the current TON Network information?"
+
 ## Security Notes
 
 1. **Environment Variables**: All private keys are stored in the .env file and never exposed in the conversation history
@@ -290,6 +318,15 @@ The tool can use either a private key or mnemonic phrase for XRP transactions. C
 - `XRP_MNEMONIC`: Alternative to private key - your 12-word recovery phrase
 - `XRP_ADDRESS`: Optional - Your XRP account address (used to verify the derived address)
 - `XRP_RPC_URL`: Optional - Custom XRP Ledger node URL (defaults to public endpoint)
+
+### TON Configuration
+The tool uses TON Center's API by default and requires a mnemonic phrase for TON transactions. Configure these in your .env file:
+- `TON_MNEMONIC`: Required - Your 24-word recovery phrase for TON wallet
+- `TON_ADDRESS`: Required - Your TON wallet address
+- `TON_API_KEY`: Recommended - API key from @tonapibot on Telegram (for higher rate limits)
+- `TON_RPC_URL`: Optional - Custom TON RPC URL (defaults to TON Center API)
+
+The implementation includes automatic retry logic with exponential backoff for rate limit handling.
 
 ### UTXO Chain Data Providers
 The tool uses several data providers for UTXO chains:
